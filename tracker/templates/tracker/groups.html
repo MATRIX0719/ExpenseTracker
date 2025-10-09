@@ -1,11 +1,40 @@
 {% extends 'tracker/base.html' %}
-
+{% load static %}
 {% block title %}Groups Dashboard{% endblock %}
-
 
 
 {% block content %}
 
-<h2> Groupsssssssssss</h2>
+<div class="container mt-4">
+    <h2 class="mb-4">My Groups</h2>
+
+    <!-- Groups Table -->
+    <table class="table table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Remove</th>
+                <th>Expenses</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in groups %}
+                <tr>
+                    <td>{{ group.name }}</td>
+                    <td>{{ group.category }}</td>
+                    <td><a href="#" class="btn btn-danger btn-sm disabled">Remove</a></td>
+                    <td><a href="#" class="btn btn-info btn-sm disabled">Expenses</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4" class="text-center">No groups yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="d-grip gap-2 p-4 mt-4">
+    <a href="{% url 'create_group' %}" class="btn btn-outline-primary">Create Group</a>
+</div>
 
 {% endblock %}

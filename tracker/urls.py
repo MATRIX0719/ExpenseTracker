@@ -21,4 +21,8 @@ urlpatterns = [
     path('add_expense_with_friend/<int:friend_id>/',views.add_expense_with_friend, name='add_expense_with_friend'),
     path('expense_details/<int:friend_id>/', views.expense_details, name='expense_details'),
     path('save_split_expense/<int:friend_id>/', views.save_split_expense, name='save_split_expense'),
+
+    #Phase 3
+    path('groups/',views.groups_dashboard,name='groups'),
+    path('create-group/',views.create_group,name='create_group'),
 ]

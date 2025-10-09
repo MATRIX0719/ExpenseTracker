@@ -68,3 +68,25 @@ class FriendExpense(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.amount} between {self.user.name} and {self.friend_user.name}"
+
+class Groups(models.Model):
+    CATEGORY_CHOICES = [
+        ('Trip', 'Trip'),
+        ('Home', 'Home'),
+        ('Couple', 'Couple'),
+        ('Other', 'Other'),
+    ]
+
+    name = models.CharField(max_length=100)
+    category = models.CharField(max_length=80,choices=CATEGORY_CHOICES)
+    created_by = models.ForeignKey(UserRegistration, on_delete=models.CASCADE, related_name='created_groups')
+    members = models.ManyToManyField(UserRegistration, related_name='groups')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        super().save(*args,**kwargs)
+        #Ensure creator is always a member
+        self.members.add(self.created_by)
+
+    def __str__(self):
+        return f"{self.name} ({self.category})"

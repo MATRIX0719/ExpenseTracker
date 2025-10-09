@@ -1,5 +1,5 @@
 from urllib import request
-from . models import Friend, UserRegistration,Expense,FriendExpense
+from . models import Friend, UserRegistration,Expense,FriendExpense,Groups
 from django.db.models import Q
 from django.shortcuts import render, redirect
 from django.http import HttpResponse,JsonResponse
@@ -133,59 +133,6 @@ def landing_page(request):
         return redirect('login')
     else:
         return render(request, 'tracker/landing_page.html')
-    
-    # #Fetch expenses for the logged-in user
-    # expenses = Expense.objects.filter(user_id=request.session['user_id']).order_by('-date')
-
-    # #Get filter values from GET parameters
-    # search_query = request.GET.get('search', '')
-    # category_filter = request.GET.get('category', '')
-    # sort_by = request.GET.get('sort_by', '')
-
-    # #Apply search filter
-    # if search_query:
-    #     expenses = expenses.filter(title__icontains=search_query)
-
-    # #Apply category filter
-    # if category_filter:
-    #     expenses = expenses.filter(category=category_filter)
-
-    # #Apply sorting
-    # if sort_by == 'amount_asc':
-    #     expenses = expenses.order_by('amount')
-    # elif sort_by == 'amount_desc':
-    #     expenses = expenses.order_by('-amount')
-    # else:
-    #     expenses = expenses.order_by('-date')  # Default sorting by date descending
-
-    
-    # #Statistics Section
-    # total_spent = expenses.aggregate(total=Sum('amount'))['total'] or 0
-    # avg_spent = expenses.aggregate(avg=Avg('amount'))['avg'] or 0
-
-    # #Current month expenses
-    # current_month = datetime.now().month    
-    # current_year = datetime.now().year
-    # monthly_expenses = expenses.filter(date__month=current_month, date__year=current_year)  
-    # monthly_total = monthly_expenses.aggregate(total=Sum('amount'))['total'] or 0
-
-    # #Category-wise totals
-    # category_totals = expenses.values('category').annotate(total=Sum('amount')).order_by('-total')
-
-    # context = {
-    #     'expenses': expenses,
-    #     'username': request.session.get('username'),
-    #     'total_spent': total_spent,
-    #     'avg_spent': avg_spent,
-    #     'monthly_total': monthly_total,
-    #     'category_totals': category_totals,
-    #     'search_query': search_query,
-    #     'category_filter': category_filter,
-    #     'sort_by': sort_by,
-    # }
-
-    # #Passing them to the template
-    # return render(request, 'tracker/landing_page.html',context)
 
 #Personal Dashboard
 @never_cache
@@ -430,7 +377,33 @@ def groups_dashboard(request):
     if 'username' not in request.session:
         messages.error(request, "Please log in to access this page.")
         return redirect('login')
-    return render(request, 'tracker/groups.html')
+    else:
+        user_id = request.session.get('user_id')
+        user = UserRegistration.objects.get(id=user_id)
+        groups = Groups.objects.filter(members=user)
+    return render(request, 'tracker/groups.html', {'groups' : groups})
+
+def create_group(request):
+    if 'username' not in request.session:
+        messages.error(request, "Please log in to access this page.")
+        return redirect('login')
+    
+    user_id = request.session.get('user_id')
+    user = UserRegistration.objects.get(id=user_id)
+
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        category = request.POST.get('category')
+
+        #Why if
+        if name and category:
+            group = Groups.objects.create(name=name, category=category, created_by=user)
+            messages.success(request, "Group created successfully!")
+            return redirect('groups')
+        else:
+            messages.error(request,"Please fill all fields.")
+    return render(request, 'tracker/create_group.html')
+
 
 #Activity Dashboard
 def activity_dashboard(request):
