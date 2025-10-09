@@ -1,0 +1,38 @@
+{% extends 'tracker/base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="card shadow p-4 mt-4">
+<h2 class="mb-3">Register</h2>
+    <form method="POST" action="{% url 'register' %}">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label for = "username"> Username </label>
+            <input type="text" class="form-control" id="username" name="username" required> <br><br>
+        </div>
+        
+        <div class="mb-3">
+            <label for = "email"> Email </label>
+            <input type="email" class="form-control" id="email" name="email" required> <br><br>
+        </div>
+        
+        <div class="mb-3">
+            <label for="password"> Password </label>
+            <input type="password" class="form-control" id="password" name="password" required> <br><br>
+        </div>
+        
+        <div class="mb-3">
+            <label for="confirm_password">Confirm_password</label>
+            <input type="password" class="form-control" id="confirm_password" name="c_password" required> <br><br>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100"> Register </button> <br><br>
+
+       <p class="mt-3 text-center">
+        Already have an account? <a href="{% url 'login' %}">Login here</a>
+        </p>
+    </form>
+</div>
+{% endblock %}

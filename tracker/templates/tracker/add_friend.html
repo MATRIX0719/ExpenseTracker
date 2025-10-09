@@ -1,0 +1,20 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Add Friend{% endblock %}
+
+{% block content %}
+<h2>Add Friend</h2>
+
+<form method = 'POST'>
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="friendname" class="form-label">Friend's Name</label>
+        <input type="text" class="form-control" id="friendname" name="friendname" required>
+    </div>
+    <div class="mb-3">
+        <label for="friend_email" class="form-label">Friend's Email</label>
+        <input type="email" class="form-control" id="friende_mail" name="friend_email" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Add Friend</button>
+</form>
+
+{% endblock  %}

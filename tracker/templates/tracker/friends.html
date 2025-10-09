@@ -1,0 +1,48 @@
+{% extends 'tracker/base.html' %}
+
+{% block title %}Friends Dashboard{% endblock %}
+
+{% block content %}
+<h2>Friends List</h2>
+
+<table class="table table-bordered table-hover mt-3">
+    <thead class="table-dark">
+        <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Remove</th>
+            <th>Details</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if friends %}
+            {% for friend in friends %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ friend.friend_user.name }}</td>
+                    <td>{{ friend.friend_user.email }}</td>
+                    <td>
+                        <form action="{% url 'remove_friend' friend.friend_user.id %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                        </form>
+                    </td>
+                    <td>
+                        <a href="{% url 'friend_details' friend.friend_user.id %}" class="btn btn-info btn-sm">Details/Expenses</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="3" class="text-center">No friends found.</td>
+            </tr>
+        {% endif %}
+    </tbody>
+</table>
+
+
+    <div class="d-grip gap-2 p-4 mt-4">
+        <a href="{% url 'add_friend' %}" class="btn btn-outline-primary">Add Friend</a>
+    </div>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends 'tracker/base.html' %}
+{% block title %}Personal Dashboard{% endblock %}
+
+{% block content %}
+<div class="card shadow p-4 mt-4 text-center">
+
+<div class="d-grip gap-2 d-md-block">
+    <a href="{% url 'add_expense' %}" class="btn btn-primary"> + Add New Expense</a><br><br>
+
+</div>
+ 
+    <!-- Search & Filter Form -->
+    <form method="get" class="row g-3 mb-3">
+        <div class="col-md-6">
+            <input type="text" name="search" value="{{ search_query }}" class="form-control" placeholder="Search by title">
+        </div>
+        <div class="col-md-4">
+            <select name="category" class="form-select">
+                <option value="">All Categories</option>
+                <option value="Food" {% if category_filter == "Food" %}selected{% endif %}>Food</option>
+                <option value="Transport" {% if category_filter == "Transport" %}selected{% endif %}>Transport</option>
+                <option value="Shopping" {% if category_filter == "Shopping" %}selected{% endif %}>Shopping</option>
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <select name="sort_by" class="form-select">
+                <option value="">Sort By</option>
+                <option value="amount_asc" {% if sort_by == "amount_asc" %}selected{% endif %}>Amount ↑</option>
+                <option value="amount_desc" {% if sort_by == "amount_desc" %}selected{% endif %}>Amount ↓</option>
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-secondary w-100">Filter</button>
+        </div>
+    </form>
+
+    <h4>Your Expenses</h4>
+    <table class="table table-bordered table-hover mt-3">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Amount (₹)</th>
+                <th>Category</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if expenses %}
+                {% for expense in expenses %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ expense.title }}</td>
+                        <td>{{ expense.amount }}</td>
+                        <td>{{ expense.category }}</td>
+                        <td>{{ expense.date }}</td>
+                        <td>
+                            <!-- Update & Delete (we will implement soon) -->
+                            <a href="{% url 'edit_expense' expense.id %}" class="btn btn-sm btn-primary">Edit</a>
+                            <a href="{% url 'delete_expense' expense.id %}" class="btn btn-sm btn-danger">Delete</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="6" class="text-center">No expenses found. Add one!</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <!-- Totals / Stats Section -->
+    <div class="row mb-4 text-center">
+        <div class="col-md-3 mb-2">
+            <div class="card text-bg-primary p-3">
+                <h5>Total Spent</h5>
+                <h3>₹{{ total_spent }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3 mb-2">
+            <div class="card text-bg-success p-3">
+                <h5>Monthly Total</h5>
+                <h3>₹{{ monthly_total }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3 mb-2">
+            <div class="card text-bg-warning p-3">
+                <h5>Average Expense</h5>
+                <h3>₹{{ avg_spent|floatformat:2 }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3 mb-2">
+            <div class="card text-bg-info p-3">
+                <h5>Total Categories</h5>
+                <h3>{{ category_totals|length }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category-wise Breakdown -->
+    <div class="card shadow p-3 mb-4">
+        <h4>Category-wise Breakdown</h4>
+        <table class="table table-bordered table-striped mt-2">
+            <thead class="table-dark">
+                <tr>
+                    <th>Category</th>
+                    <th>Total Spent (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat in category_totals %}
+                    <tr>
+                        <td>{{ cat.category }}</td>
+                        <td>{{ cat.total }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="2" class="text-center">No expenses yet!</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}  

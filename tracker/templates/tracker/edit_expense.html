@@ -1,0 +1,30 @@
+{% extends 'tracker/base.html' %}
+
+{% block title %}Edit Expense{% endblock %}
+
+{% block content %}
+<div class="card shadow p-4 mt-4">
+    <h3>Edit Expense</h3>
+    <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" value="{{ expense.title }}" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Amount</label>
+            <input type="number" name="amount" value="{{ expense.amount }}" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Category</label>
+            <input type="text" name="category" value="{{ expense.category }}" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Date</label>
+            <input type="date" name="date" value="{{ expense.date|date:'Y-m-d' }}" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Update</button>
+        <a href="{% url 'landing_page' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

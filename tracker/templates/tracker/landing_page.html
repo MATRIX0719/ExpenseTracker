@@ -1,0 +1,20 @@
+{% extends 'tracker/base.html' %}
+
+{% block title %}Landing Page{% endblock %}
+
+{% block content %}
+<div class="card shadow p-4 mt-4 text-center">
+    <h2 class="mb-3">Welcome, {{request.session.username}}</h2>
+    <p class="lead">You are now logged in!</p>
+
+<div class="d-grip gap-2 d-md-block">
+    <a href="{% url 'logout' %}" class="btn btn-danger w-50">Logout</a><br><br>
+</div>
+    <div class="d-grip gap-2 d-md-block">
+        <a href="{% url 'personal_dashboard' %}" class="btn btn-primary">Personal Dashboard</a>
+        <a href="{% url 'friends_dashboard' %}" class="btn btn-primary">Friends Dashboard</a>
+        <a href="{% url 'groups_dashboard' %}" class="btn btn-primary">Groups Dashboard</a>
+        <a href="{% url 'activity_dashboard' %}" class="btn btn-primary">Activity Dashboard</a>
+
+</div>
+{% endblock %}
