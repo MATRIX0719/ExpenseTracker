@@ -31,4 +31,7 @@ urlpatterns = [
     path('group/<int:group_id>/add_members/', views.add_members, name='add_members'),
     path('group/<int:group_id>/add_expense/', views.add_group_expense, name='add_group_expense'),
     path('group/<int:group_id>/save_expense/', views.save_group_split_expense, name='save_group_split_expense'),
+
+    #Settle Up Balances
+    path('record_payment/<int:friend_id>/', views.record_payment, name='record_payment'),
 ]

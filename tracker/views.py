@@ -250,10 +250,14 @@ def friend_details(request, friend_id):
         Q(user_id=friend_id, friend_user_id=user_id)
     ).order_by('-date')
     total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+    balance_data = expenses.aggregate(total_balance=Sum('amount_owed'))
+    total_balance = balance_data['total_balance'] or 0.0
+
     context = {
         'friend': friend,
         'expenses': expenses,
         'total_expenses': total_expenses,
+        'total_balance': total_balance,
         'user':user,
     }
     return render(request, 'tracker/friend_details.html', context)
@@ -663,6 +667,55 @@ def activity_dashboard(request):
         messages.error(request, "Please log in to access this page.")
         return redirect('login')
     return render(request, 'tracker/activity.html')
+
+#Settle Up Balances
+#for friend
+def record_payment(request, friend_id):
+    if request.method == 'POST':
+        try:
+            user_id = request.session.get('user_id')
+            if not user_id:
+                return redirect('login') # Or your login page
+
+            user = get_object_or_404(UserRegistration, id=user_id)
+            friend = get_object_or_404(UserRegistration, id=friend_id)
+            
+            amount = float(request.POST.get('amount'))
+            payer_id = int(request.POST.get('payer'))
+            
+            # Determine who the receiver is
+            if payer_id == user_id:
+                paid_by_user = user
+                receiver_name = friend.name
+            else:
+                paid_by_user = friend
+                receiver_name = user.name
+
+            # key logic
+            if payer_id == user_id:
+                amount_to_save = amount  # Positive: Friend "owes" this payment back
+            else:
+                amount_to_save = -amount # Negative: User "owes" this payment back
+            # --- End of logic ---
+            
+            # Create the payment as a FriendExpense
+            FriendExpense.objects.create(
+                user=user,  # The logged-in user is always the 'owner' of the record
+                friend_user=friend,
+                title="Payment",
+                description=f"{paid_by_user.name} paid {receiver_name}",
+                amount=amount,
+                category="Payment",
+                paid_by=paid_by_user,
+                amount_owed=amount_to_save  # This is the calculated balance shift
+            )
+            
+            messages.success(request, "Payment recorded successfully!")
+
+        except Exception as e:
+            messages.error(request, f"Error recording payment: {e}")
+
+    return redirect('friend_details', friend_id=friend_id)
 
 #CRUD
 def add_expense(request):
