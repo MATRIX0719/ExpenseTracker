@@ -1,18 +1,17 @@
 from urllib import request
 from . models import Friend, UserRegistration,Expense,FriendExpense,Groups,GroupExpense,GroupExpenseSplit
-from django.db.models import Q
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse,JsonResponse
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.conf import settings
 import random
 from django.views.decorators.cache import never_cache
-from django.shortcuts import get_object_or_404
 from datetime import datetime
-from django.db.models import Sum, Avg
+from django.db.models import Sum, Avg, Q
 from django.urls import reverse
 from django.db import transaction
+from decimal import Decimal
 # Create your views here.
 
 def index(request):
@@ -471,22 +470,82 @@ def group_details(request, group_id):
     user_id = request.session.get('user_id')
     user = UserRegistration.objects.get(id=user_id)
     group = get_object_or_404(Groups, id=group_id)
+    all_members = group.members.all()
 
-    #Fetch all group expenses with related splits
-    expenses = GroupExpense.objects.filter(group=group).prefetch_related('splits', 'paid_by')
+    #1. Fetch all group expenses with related splits
+    expenses = GroupExpense.objects.filter(group=group).prefetch_related('splits', 'paid_by').order_by('-date')
 
-    # Optional: total balance for this user in this group
-    # total_owe = GroupExpenseSplit.objects.filter(user=user, expense__group=group).aggregate(total=models.Sum('amount_owed'))['total'] or 0
+    #2. Get 1-on-1 Friend Expenses (payments) only for this group
+    friend_expenses = FriendExpense.objects.filter(
+        group=group,                         #only Get payments linked to this group
+    ).order_by('-date').select_related('user', 'friend_user', 'paid_by')
 
+    #Phase 4 Balance calculation logic
+    balance_summary = []
 
-    #Displays details of the specific group, including its members
-    # group = get_object_or_404(Groups, id=group_id)
-    # members = group.members.all()
+    #Loop all members except user
+    for member in all_members:
+        if member.id == user.id:
+            continue  # Skip current user
+
+        #Part 1: Calculate balance from Group Expenses
+        # Use Decimal to prevent errors with None
+        #Calculate what this 'member' owes to 'user'
+        member_owes_user = GroupExpenseSplit.objects.filter(
+            expense__in=expenses,                   #In this group's expenses
+            expense__paid_by=user,                  #Paid by current user
+            user=member                             #For this specific member's share
+        ).aggregate(total=Sum('amount_owed'))['total'] or Decimal("0.00") #FIX : Use Decimal
+
+        #Calculate what 'user' owes to this 'member'
+        user_owes_member = GroupExpenseSplit.objects.filter(
+            expense__in=expenses,                   #In this group's expenses
+            expense__paid_by=member,                #Paid by this specific member
+            user=user                               #For current user's share
+        ).aggregate(total=Sum('amount_owed'))['total'] or Decimal("0.00") #FIX : Use Decimal
+
+        #Calculate net balance from user's perspective
+        group_balance = member_owes_user - user_owes_member  #This is Decimal
+
+        #Part 2 Calculate balance from 1-on-1 Friend Expenses
+        #FIX : Check records 'user' created about 'member'
+        #Assumes the amount_owed in FriendExpense is always from user perspective
+        #Balance from records 'user' created about 'member'
+        # Friend balance now filtered by group
+        friend_balance_user_created_float = friend_expenses.filter(
+            user=user,
+            friend_user=member
+        ).aggregate(total=Sum('amount_owed'))['total'] or 0.0
+
+        #FIX : Check records 'member' created about 'user'
+        #Balance from records 'member' created about 'user'
+        #Here amount_owed is from 'member' perspective, so we invert the sign
+        friend_balance_member_created_float = friend_expenses.filter(
+            user=member,
+            friend_user=user
+        ).aggregate(total=Sum('amount_owed'))['total'] or 0.0
+
+        #The total 1-on-1 balance is our records + the inverse records from friends
+        total_friend_balance = Decimal(friend_balance_user_created_float) - Decimal(friend_balance_member_created_float)
+
+        #Part 3: Calculate True net balance
+        #Safe now : Decimal + Decimal
+        net_balance = group_balance + total_friend_balance
+
+        #Only shows members with non-zero balances
+        if abs(net_balance) > 0.01:  # Small threshold to avoid floating-point issues   
+            balance_summary.append({
+                'member': member,
+                'balance': net_balance
+            })
 
     context = {
         'group': group,
         'expenses': expenses,
+        'friend_expenses': friend_expenses,
         'current_user': user,
+        'balance_summary': balance_summary,
+        'members':group.members.all(), #Passing all members to template for if checks
     }
     return render(request, 'tracker/group_details.html', context)
 
@@ -669,7 +728,7 @@ def activity_dashboard(request):
     return render(request, 'tracker/activity.html')
 
 #Settle Up Balances
-#for friend
+#for friend and group 
 def record_payment(request, friend_id):
     if request.method == 'POST':
         try:
@@ -683,6 +742,17 @@ def record_payment(request, friend_id):
             amount = float(request.POST.get('amount'))
             payer_id = int(request.POST.get('payer'))
             
+            # --- ADD THIS BLOCK ---
+            # Check if a group_id was sent with the form
+            group_id = request.POST.get('group_id')
+            group_instance = None
+            if group_id:
+                try:
+                    group_instance = Groups.objects.get(id=group_id)
+                except Groups.DoesNotExist:
+                    pass # Ignore if group doesn't exist
+            # --- END ADDED BLOCK ---
+
             # Determine who the receiver is
             if payer_id == user_id:
                 paid_by_user = user
@@ -698,6 +768,7 @@ def record_payment(request, friend_id):
                 amount_to_save = -amount # Negative: User "owes" this payment back
             # --- End of logic ---
             
+            #This creates the 1-on-1 payment record
             # Create the payment as a FriendExpense
             FriendExpense.objects.create(
                 user=user,  # The logged-in user is always the 'owner' of the record
@@ -707,7 +778,8 @@ def record_payment(request, friend_id):
                 amount=amount,
                 category="Payment",
                 paid_by=paid_by_user,
-                amount_owed=amount_to_save  # This is the calculated balance shift
+                amount_owed=amount_to_save,  # This is the calculated balance shift
+                group=group_instance  # Link to group if provided
             )
             
             messages.success(request, "Payment recorded successfully!")
@@ -715,7 +787,15 @@ def record_payment(request, friend_id):
         except Exception as e:
             messages.error(request, f"Error recording payment: {e}")
 
-    return redirect('friend_details', friend_id=friend_id)
+        #New redirect Logic
+        #Check if form sent a 'redirect_url'
+        redirect_url = request.POST.get('redirect_url')
+        if redirect_url:
+            return redirect(redirect_url)
+        else:
+            return redirect('friend_details', friend_id=friend_id)
+
+    return redirect('personal_dashboard')
 
 #CRUD
 def add_expense(request):

@@ -65,6 +65,8 @@ class FriendExpense(models.Model):
     description = models.TextField(blank=True,null=True)
     paid_by = models.ForeignKey(UserRegistration, on_delete=models.CASCADE, related_name='paid_expenses',blank=True,null=True)
     amount_owed = models.FloatField(default=0) #Amount the user owes
+    #this will "tag" the payment to a group if needed.
+    group = models.ForeignKey('Groups', on_delete=models.SET_NULL, blank=True, null=True, related_name="payments")
 
     def __str__(self):
         return f"{self.title} - {self.amount} between {self.user.name} and {self.friend_user.name}"
@@ -104,7 +106,7 @@ class GroupExpense(models.Model):
     #Optional helper field to total balances cached
     total_split_done = models.BooleanField(default=False)
 
-def __str__(self):
+    def __str__(self):
         return f"{self.title} - {self.amount} in group {self.group.name}"
 
 

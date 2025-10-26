@@ -70,6 +70,9 @@
         <div class="modal-content">
             <form action="{% url 'record_payment' friend.id %}" method="POST">
                 {% csrf_token %}
+
+                <input type="hidden" name="redirect_url" value="{{ request.path }}">
+
                 <div class="modal-header">
                     <h5 class="modal-title" id="settleUpModalLabel">Record a Payment</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
