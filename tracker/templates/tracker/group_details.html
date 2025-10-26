@@ -6,41 +6,94 @@
 <div class="container mt-4">
     <h2 class="mb-3">Group: {{ group.name }} ({{ group.category }})</h2>
 
-    <h4>Your Balances</h4>
-        <ul class="list-group mb-4">
-            {% for item in balance_summary %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        {% if item.balance < 0 %}
-                            You owe <strong>{{ item.member.name }}</strong>
-                            <span class="text-danger">₹{{ item.balance|floatformat:2|cut:"-" }}</span>
-                        {% else %}
-                            <strong>{{ item.member.name }}</strong> owes you
-                            <span class="text-success">₹{{ item.balance|floatformat:2 }}</span>
-                        {% endif %}
-                    </div>
-                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#settleUpModal-{{ item.member.id }}">
-                        💸 Settle Up
-                    </button>
-                </li>
-            {% empty %}
-                <li class="list-group-item">All balances are settled.</li>
-            {% endfor %}
-        </ul>
-
-    <div class="d-grid gap-2 d-md-block">
-        {% if members|length == 1 and current_user in members %}
-            <a href="{% url 'add_members' group_id=group.id %}" class="btn btn-success">Add Members from Friends</a>
-            <a href="#" class="btn btn-secondary">Share Invite Link</a>
-        {% endif %}
-
+    <div class="d-grid gap-2 d-md-block mb-3">
         <a href="{% url 'add_group_expense' group_id=group.id %}" class="btn btn-primary">Add Expense to Group</a>
-        <a href="{% url 'groups' %}" class="btn btn-outline-secondary">Back to All Groups</a>
+        
+        <button class="btn btn-info" type="button" data-bs-toggle="collapse" data-bs-target="#balanceDetails" aria-expanded="false" aria-controls="balanceDetails">
+            Show Balances & Payments
+        </button>
+        
         <a href="{% url 'add_members' group_id=group.id %}" class="btn btn-outline-secondary">Add a member</a>
+        <a href="{% url 'groups' %}" class="btn btn-outline-secondary">Back to All Groups</a>
     </div>
 
-    <hr>
+    <div class="collapse" id="balanceDetails">
+        <div class="card card-body mb-3">
+            
+            <h4>Your Balances</h4>
+            <ul class="list-group mb-4">
+                {% for item in balance_summary %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if item.balance < 0 %}
+                                You owe <strong>{{ item.member.name }}</strong>
+                                <span class="text-danger">₹{{ item.balance|floatformat:2|cut:"-" }}</span>
+                            {% else %}
+                                <strong>{{ item.member.name }}</strong> owes you
+                                <span class="text-success">₹{{ item.balance|floatformat:2 }}</span>
+                            {% endif %}
+                        </div>
+                        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#settleUpModal-{{ item.member.id }}">
+                            💸 Settle Up
+                        </button>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item">All balances are settled.</li>
+                {% endfor %}
+            </ul>
 
+            <hr>
+
+            <h4>Payments & 1-on-1 Expenses</h4>
+            <p class="text-muted" style="font-size: 0.9em;">
+                This list shows all 1-on-1 payments recorded for this group.
+            </p>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Title</th>
+                        <th>Paid By</th>
+                        <th>Amount</th>
+                        <th>Balance Change</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in friend_expenses %}
+                    <tr>
+                        <td>{{ expense.date }}</td>
+                        <td>{{ expense.title }}</td>
+                        <td>{{ expense.paid_by.name }}</td>
+                        <td>₹{{ expense.amount|floatformat:2 }}</td>
+                        <td>
+                            {% if expense.user == current_user %}
+                                {% if expense.amount_owed > 0 %}
+                                    <span class="text-success">{{ expense.friend_user.name }} owes you ₹{{ expense.amount_owed|floatformat:2 }}</span>
+                                {% elif expense.amount_owed < 0 %}
+                                    <span class="text-danger">You owe {{ expense.friend_user.name }} ₹{{ expense.amount_owed|floatformat:2|cut:"-" }}</span>
+                                {% else %}
+                                    Settled
+                                {% endif %}
+                            {% else %}
+                                {% if expense.amount_owed > 0 %}
+                                    <span class="text-danger">You owe {{ expense.user.name }} ₹{{ expense.amount_owed|floatformat:2 }}</span>
+                                {% elif expense.amount_owed < 0 %}
+                                    <span class="text-success">{{ expense.user.name }} owes you ₹{{ expense.amount_owed|floatformat:2|cut:"-" }}</span>
+                                {% else %}
+                                    Settled
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No payments recorded for this group.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div> </div> <hr>
     <h4>Group Expenses</h4>
     <table class="table table-bordered">
         <thead>
@@ -76,82 +129,29 @@
             {% endfor %}
         </tbody>
     </table>
-
-    <hr> <h4>Payments & 1-on-1 Expenses</h4>
-    <p class="text-muted" style="font-size: 0.9em;">
-        This list shows all 1-on-1 payments and expenses recorded with group members. 
-        These are included in the "Your Balances" calculation above.
-    </p>
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Title</th>
-                <th>Paid By</th>
-                <th>Amount</th>
-                <th>Balance Change</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for expense in friend_expenses %}
-            <tr>
-                <td>{{ expense.date }}</td>
-                <td>{{ expense.title }}</td>
-                <td>{{ expense.paid_by.name }}</td>
-                <td>₹{{ expense.amount|floatformat:2 }}</td>
-                <td>
-                    {% if expense.user == current_user %}
-                        {% if expense.amount_owed > 0 %}
-                            <span class="text-success">{{ expense.friend_user.name }} owes you ₹{{ expense.amount_owed|floatformat:2 }}</span>
-                        {% elif expense.amount_owed < 0 %}
-                            <span class="text-danger">You owe {{ expense.friend_user.name }} ₹{{ expense.amount_owed|floatformat:2|cut:"-" }}</span>
-                        {% else %}
-                            Settled
-                        {% endif %}
-                    {% else %}
-                        {% if expense.amount_owed > 0 %}
-                            <span class="text-danger">You owe {{ expense.user.name }} ₹{{ expense.amount_owed|floatformat:2 }}</span>
-                        {% elif expense.amount_owed < 0 %}
-                            <span class="text-success">{{ expense.user.name }} owes you ₹{{ expense.amount_owed|floatformat:2|cut:"-" }}</span>
-                        {% else %}
-                            Settled
-                        {% endif %}
-                    {% endif %}
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="5" class="text-center">No payments or 1-on-1 expenses recorded with members of this group.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
     
+</div>
 
-    {% for item in balance_summary %}
+{% for item in balance_summary %}
 <div class="modal fade" id="settleUpModal-{{ item.member.id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <form action="{% url 'record_payment' item.member.id %}" method="POST">
                 {% csrf_token %}
-                
                 <input type="hidden" name="redirect_url" value="{{ request.path }}">
-                
                 <input type="hidden" name="group_id" value="{{ group.id }}">
-
+                
                 <div class="modal-header">
                     <h5 class="modal-title">Settle Up with {{ item.member.name }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    
                     {% if item.balance < 0 %}
                         <p>You are paying <strong>{{ item.member.name }}</strong>.</p>
                         <input type="hidden" name="payer" value="{{ current_user.id }}">
                         <label for="amount-{{ item.member.id }}" class="form-label">Amount</label>
                         <input type="number" step="0.01" class="form-control" id="amount-{{ item.member.id }}" name="amount" 
                                value="{{ item.balance|floatformat:2|cut:"-" }}">
-                    
                     {% else %}
                         <p><strong>{{ item.member.name }}</strong> is paying you.</p>
                         <input type="hidden" name="payer" value="{{ item.member.id }}">
@@ -170,7 +170,4 @@
 </div>
 {% endfor %}
 
-    
-
-</div>
 {% endblock %}
