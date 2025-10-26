@@ -12,6 +12,7 @@ from django.db.models import Sum, Avg, Q
 from django.urls import reverse
 from django.db import transaction
 from decimal import Decimal
+from django.core.paginator import Paginator
 # Create your views here.
 
 def index(request):
@@ -472,11 +473,12 @@ def group_details(request, group_id):
     group = get_object_or_404(Groups, id=group_id)
     all_members = group.members.all()
 
+    #We get the ful unsliced lists for balance calculation
     #1. Fetch all group expenses with related splits
-    expenses = GroupExpense.objects.filter(group=group).prefetch_related('splits', 'paid_by').order_by('-date')
+    all_group_expenses = GroupExpense.objects.filter(group=group).prefetch_related('splits', 'paid_by').order_by('-date')
 
     #2. Get 1-on-1 Friend Expenses (payments) only for this group
-    friend_expenses = FriendExpense.objects.filter(
+    all_friend_expenses = FriendExpense.objects.filter(
         group=group,                         #only Get payments linked to this group
     ).order_by('-date').select_related('user', 'friend_user', 'paid_by')
 
@@ -492,14 +494,14 @@ def group_details(request, group_id):
         # Use Decimal to prevent errors with None
         #Calculate what this 'member' owes to 'user'
         member_owes_user = GroupExpenseSplit.objects.filter(
-            expense__in=expenses,                   #In this group's expenses
+            expense__in=all_group_expenses,                   #In this group's expenses
             expense__paid_by=user,                  #Paid by current user
             user=member                             #For this specific member's share
         ).aggregate(total=Sum('amount_owed'))['total'] or Decimal("0.00") #FIX : Use Decimal
 
         #Calculate what 'user' owes to this 'member'
         user_owes_member = GroupExpenseSplit.objects.filter(
-            expense__in=expenses,                   #In this group's expenses
+            expense__in=all_group_expenses,                   #In this group's expenses
             expense__paid_by=member,                #Paid by this specific member
             user=user                               #For current user's share
         ).aggregate(total=Sum('amount_owed'))['total'] or Decimal("0.00") #FIX : Use Decimal
@@ -512,7 +514,7 @@ def group_details(request, group_id):
         #Assumes the amount_owed in FriendExpense is always from user perspective
         #Balance from records 'user' created about 'member'
         # Friend balance now filtered by group
-        friend_balance_user_created_float = friend_expenses.filter(
+        friend_balance_user_created_float = all_friend_expenses.filter(
             user=user,
             friend_user=member
         ).aggregate(total=Sum('amount_owed'))['total'] or 0.0
@@ -520,7 +522,7 @@ def group_details(request, group_id):
         #FIX : Check records 'member' created about 'user'
         #Balance from records 'member' created about 'user'
         #Here amount_owed is from 'member' perspective, so we invert the sign
-        friend_balance_member_created_float = friend_expenses.filter(
+        friend_balance_member_created_float = all_friend_expenses.filter(
             user=member,
             friend_user=user
         ).aggregate(total=Sum('amount_owed'))['total'] or 0.0
@@ -539,10 +541,22 @@ def group_details(request, group_id):
                 'balance': net_balance
             })
 
+    #Pagination Logic
+    # Paginate Group Expenses (10 per page)
+    group_paginator = Paginator(all_group_expenses, 10)
+    page_number = request.GET.get('page')
+    expenses_page_obj = group_paginator.get_page(page_number)
+
+    # Paginate Friend Expenses (5 per page)
+    friend_paginator = Paginator(all_friend_expenses, 5)
+    pay_page_number = request.GET.get('pay_page')
+    friend_expenses_page_obj = friend_paginator.get_page(pay_page_number)
+    # --- END OF NEW LOGIC ---
+
     context = {
         'group': group,
-        'expenses': expenses,
-        'friend_expenses': friend_expenses,
+        'expenses_page_obj': expenses_page_obj,
+        'friend_expenses_page_obj': friend_expenses_page_obj,
         'current_user': user,
         'balance_summary': balance_summary,
         'members':group.members.all(), #Passing all members to template for if checks
