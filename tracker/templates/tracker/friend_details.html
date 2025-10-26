@@ -7,9 +7,9 @@
 
     <div class="alert alert-info mt-3">
         {% if total_balance > 0 %}
-            <strong>{{ friend.name }} owes you Rs {{ total_balance|floatformat:2 }}</strong>
+            <strong>{{ friend.name }} owes you ₹{{ total_balance|floatformat:2 }}</strong>
         {% elif total_balance < 0 %}
-            <strong>You owe {{ friend.name }} Rs {{ total_balance|floatformat:2|cut:"-" }}</strong>
+            <strong>You owe {{ friend.name }} ₹{{ total_balance|floatformat:2|cut:"-" }}</strong>
         {% else %}
             <strong>You are all settled up.</strong>
         {% endif %}
@@ -38,24 +38,25 @@
             </tr>
         </thead>
         <tbody>
-            {% for expense in expenses %}
-                <tr>
-                    <td>{{ expense.date }}</td>
-                    <td>{{ expense.title }}</td>
-                    <td>{{ expense.category }}</td>
-                    <td>{{ expense.description }}</td>
-                    <td>₹{{ expense.amount }}</td>
-                    <td>{{ expense.paid_by.name }}</td>
-                    <td>
-                        {% if expense.amount_owed > 0 %}
-                            {{ friend.name }} owes you ₹{{ expense.amount_owed|floatformat:2 }}
-                        {% elif expense.amount_owed < 0 %}
-                            You owe {{ friend.name }} ₹{{ expense.amount_owed|floatformat:2|cut:"-" }}
-                        {% else %}
-                            Settled for this item
-                        {% endif %}
-                    </td> 
-                </tr>
+            {% for expense in expenses_page_obj %}
+            <tr>
+                <td>{{ expense.date }}</td>
+                <td>{{ expense.title }}</td>
+                <td>{{ expense.category }}</td>
+                <td>{{ expense.description }}</td>
+                <td>₹{{ expense.amount }}</td>
+                <td>{{ expense.paid_by.name }}</td>
+                
+                <td>
+                    {% if expense.amount_owed > 0 %}
+                        {{ friend.name }} owes you ₹{{ expense.amount_owed|floatformat:2 }}
+                    {% elif expense.amount_owed < 0 %}
+                        You owe {{ friend.name }} ₹{{ expense.amount_owed|floatformat:2|cut:"-" }}
+                    {% else %}
+                        Settled
+                    {% endif %}
+                </td> 
+            </tr>
             {% empty %}
                 <tr>
                     <td colspan="7" class="text-center">No Expenses added</td>
@@ -63,14 +64,33 @@
             {% endfor %}
         </tbody>
     </table>
+
+    <nav aria-label="Expenses navigation">
+        <ul class="pagination justify-content-center">
+            {% if expenses_page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1">&laquo; First</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ expenses_page_obj.previous_page_number }}">Previous</a></li>
+            {% endif %}
+
+            <li class="page-item disabled">
+                <span class="page-link">Page {{ expenses_page_obj.number }} of {{ expenses_page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if expenses_page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ expenses_page_obj.next_page_number }}">Next</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ expenses_page_obj.paginator.num_pages }}">Last &raquo;</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
 </div>
 
 <div class="modal fade" id="settleUpModal" tabindex="-1" aria-labelledby="settleUpModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
+
             <form action="{% url 'record_payment' friend.id %}" method="POST">
                 {% csrf_token %}
-
                 <input type="hidden" name="redirect_url" value="{{ request.path }}">
 
                 <div class="modal-header">
@@ -79,7 +99,7 @@
                 </div>
                 <div class="modal-body">
                     <p>Record a payment made outside the app (e.g., cash, GPay).</p>
-                    
+
                     <div class="mb-3">
                         <label for="amount" class="form-label">Amount</label>
                         <input type="number" step="0.01" class="form-control" id="amount" name="amount" required>

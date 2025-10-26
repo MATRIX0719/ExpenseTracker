@@ -206,6 +206,45 @@ def friends_dashboard(request):
         friends = Friend.objects.filter(user_id=user_id)
     return render(request, 'tracker/friends.html', {'friends': friends})
 
+def friend_details(request, friend_id):
+    if 'username' not in request.session:
+        messages.error(request, "Please log in to access this page.")
+        return redirect('login')
+
+    user_id = request.session.get('user_id')
+    user = get_object_or_404(UserRegistration, id=user_id)
+    friend = get_object_or_404(UserRegistration, id=friend_id)
+
+    # --- THIS IS THE FIX ---
+    # We ONLY query for records the logged-in user created about this friend.
+    # The 'Q' object is removed.
+    all_expenses = FriendExpense.objects.filter(
+        user=user, 
+        friend_user=friend
+    ).order_by('-date')
+    # --- END FIX ---
+
+    # The balance is now a simple SUM of these records.
+    total_balance = all_expenses.aggregate(total=Sum('amount_owed'))['total'] or Decimal('0.00')
+
+    # (Optional) Get total amount spent
+    total_expenses_sum = all_expenses.aggregate(total=Sum('amount'))['total'] or 0
+
+    # --- NEW: PAGINATION LOGIC ---
+    paginator = Paginator(all_expenses, 10) # 10 expenses per page
+    page_number = request.GET.get('page')
+    expenses_page_obj = paginator.get_page(page_number)
+    # --- END OF NEW LOGIC ---
+
+    context = {
+        'friend': friend,
+        'expenses_page_obj': expenses_page_obj, # Pass the paginated object
+        'total_expenses': total_expenses_sum,
+        'total_balance': total_balance,       # Pass the correct, simple balance
+        'user': user,
+    }
+    return render(request, 'tracker/friend_details.html', context)
+
 #changes
 def add_friend(request):
     if request.method == 'POST':
@@ -236,29 +275,50 @@ def add_friend(request):
         return redirect('friends_dashboard')
     return render(request, 'tracker/add_friend.html')
 
-def friend_details(request, friend_id):
     if 'username' not in request.session:
         messages.error(request, "Please log in to access this page.")
         return redirect('login')
+
     user_id = request.session.get('user_id')
-    #passing user and friend to the template from this view
-    user = UserRegistration.objects.get(id=user_id)
-    friend = UserRegistration.objects.get(id=friend_id)
-    #Most importantly, fetch expenses shared between the two users
-    expenses = FriendExpense.objects.filter(
-        Q(user_id=user_id, friend_user_id=friend_id) |
-        Q(user_id=friend_id, friend_user_id=user_id)
+    user = get_object_or_404(UserRegistration, id=user_id)
+    friend = get_object_or_404(UserRegistration, id=friend_id)
+
+    # 1. Get the *full list* of expenses for balance calculation
+    all_expenses = FriendExpense.objects.filter(
+        Q(user=user, friend_user=friend) |
+        Q(user=friend, friend_user=user)
     ).order_by('-date')
-    total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
-    balance_data = expenses.aggregate(total_balance=Sum('amount_owed'))
-    total_balance = balance_data['total_balance'] or 0.0
+
+    # --- THIS IS THE BALANCE FIX ---
+    # 2. Calculate balance from YOUR perspective
+    my_balance_val = all_expenses.filter(
+        user=user
+    ).aggregate(total=Sum('amount_owed'))['total'] or 0.0
+
+    # 3. Calculate balance from your FRIEND'S perspective
+    their_balance_val = all_expenses.filter(
+        user=friend
+    ).aggregate(total=Sum('amount_owed'))['total'] or 0.0
+    
+    # 4. The true balance is your perspective minus their perspective
+    total_balance = Decimal(my_balance_val) - Decimal(their_balance_val)
+    # --- END OF BALANCE FIX ---
+
+    # (Optional) Get total amount spent
+    total_expenses_sum = all_expenses.aggregate(total=Sum('amount'))['total'] or 0
+
+    # --- NEW: PAGINATION LOGIC ---
+    paginator = Paginator(all_expenses, 10) # 10 expenses per page
+    page_number = request.GET.get('page')
+    expenses_page_obj = paginator.get_page(page_number)
+    # --- END OF NEW LOGIC ---
 
     context = {
         'friend': friend,
-        'expenses': expenses,
-        'total_expenses': total_expenses,
-        'total_balance': total_balance,
-        'user':user,
+        'expenses_page_obj': expenses_page_obj, # Pass the paginated object
+        'total_expenses': total_expenses_sum,
+        'total_balance': total_balance,       # Pass the correct balance
+        'user': user,
     }
     return render(request, 'tracker/friend_details.html', context)
 
