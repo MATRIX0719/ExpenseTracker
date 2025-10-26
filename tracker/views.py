@@ -7,12 +7,13 @@ from django.core.mail import send_mail
 from django.conf import settings
 import random
 from django.views.decorators.cache import never_cache
-from datetime import datetime
+from datetime import datetime,date
 from django.db.models import Sum, Avg, Q
 from django.urls import reverse
 from django.db import transaction
 from decimal import Decimal
 from django.core.paginator import Paginator
+from django.utils import timezone
 # Create your views here.
 
 def index(request):
@@ -799,7 +800,86 @@ def activity_dashboard(request):
     if 'username' not in request.session:
         messages.error(request, "Please log in to access this page.")
         return redirect('login')
-    return render(request, 'tracker/activity.html')
+    
+    user_id = request.session.get('user_id')
+    user = get_object_or_404(UserRegistration, id=user_id)
+
+    activity_list = []
+
+    # --- 1. Get Friend Expenses (including Payments) ---
+    # Fetch records where the user is either the creator or the friend involved
+    friend_expenses = FriendExpense.objects.filter(
+        Q(user=user) | Q(friend_user=user)
+    ).select_related('user', 'friend_user', 'paid_by', 'group').order_by('-date') # Use 'date' field
+
+    for item in friend_expenses:
+        # Determine the date field (assuming 'date' exists, fallback to 'created_at')
+        activity_date = getattr(item, 'date', getattr(item, 'created_at', None))
+        if activity_date:
+            activity_list.append({
+                'date': activity_date,
+                'type': 'friend_expense',
+                'details': item
+            })
+
+    # --- 2. Get Group Expenses ---
+    # Fetch expenses from groups the user is a member of
+    group_expenses = GroupExpense.objects.filter(
+        group__members=user
+    ).select_related('group', 'paid_by').order_by('-date') # Use 'date' field
+
+    for item in group_expenses:
+        activity_date = getattr(item, 'date', getattr(item, 'created_at', None))
+        if activity_date:
+            activity_list.append({
+                'date': activity_date,
+                'type': 'group_expense',
+                'details': item
+            })
+
+    # --- 3. Get Group Creations ---
+    # Fetch groups where the user is a member (created or added)
+    # Note: Need a 'created_at' field on the Groups model for sorting
+    groups_involved = Groups.objects.filter(members=user).order_by('-created_at') # Assumes 'created_at' field
+
+    for item in groups_involved:
+        # Use group's creation date
+        if hasattr(item, 'created_at'):
+            activity_list.append({
+                'date': item.created_at,
+                'type': 'group_creation',
+                'details': item
+            })
+
+    # --- (Optional) 4. Get Personal Expenses ---
+    # personal_expenses = Expense.objects.filter(user=user).order_by('-date')
+    # for item in personal_expenses:
+    #     activity_list.append({
+    #         'date': item.date,
+    #         'type': 'personal_expense',
+    #         'details': item
+    #     })
+
+    # --- 5. Sort the combined list ---
+    # Sort by date, most recent first. Handles potential None dates.
+    sorted_activities = sorted(
+    [act for act in activity_list if act.get('date')],
+    key=lambda x: (
+        # Convert date objects to naive datetime at midnight
+        datetime.combine(x['date'], datetime.min.time()) if isinstance(x['date'], date) and not isinstance(x['date'], datetime)
+        # Convert aware datetime objects to naive
+        else timezone.make_naive(x['date']) if timezone.is_aware(x['date'])
+        # Otherwise, it's already naive, use it as is
+        else x['date']
+    ),
+    reverse=True
+)
+
+    context = {
+        'activities': sorted_activities,
+        'current_user': user # Pass user for template logic
+    }
+    return render(request, 'tracker/activity.html', context)
 
 #Settle Up Balances
 #for friend and group 

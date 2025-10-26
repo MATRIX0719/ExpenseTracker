@@ -34,4 +34,7 @@ urlpatterns = [
 
     #Settle Up Balances
     path('record_payment/<int:friend_id>/', views.record_payment, name='record_payment'),
+
+    #Activity Log
+    path('activity/', views.activity_dashboard, name='activity_dashboard'),
 ]
