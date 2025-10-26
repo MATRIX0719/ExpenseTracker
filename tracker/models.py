@@ -90,3 +90,30 @@ class Groups(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.category})"
+    
+class GroupExpense(models.Model):
+    group = models.ForeignKey(Groups, on_delete=models.CASCADE, related_name='expenses')
+    paid_by = models.ForeignKey(UserRegistration, on_delete=models.CASCADE, related_name='group_paid_expenses')
+    title = models.CharField(max_length=200)
+    amount = models.FloatField()
+    category = models.CharField(max_length=80)
+    date = models.DateField(auto_now_add=True)
+    description = models.TextField(blank=True,null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    #Optional helper field to total balances cached
+    total_split_done = models.BooleanField(default=False)
+
+def __str__(self):
+        return f"{self.title} - {self.amount} in group {self.group.name}"
+
+
+#Split of each group expense among members to track who owes whom
+class GroupExpenseSplit(models.Model):
+    expense = models.ForeignKey(GroupExpense, on_delete=models.CASCADE, related_name="splits")
+    user = models.ForeignKey(UserRegistration, on_delete=models.CASCADE, related_name="group_expense_splits")
+    amount_owed = models.DecimalField(max_digits=10, decimal_places=2)
+    is_paid = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.user.name} owes {self.amount_owed} for {self.expense.title}"

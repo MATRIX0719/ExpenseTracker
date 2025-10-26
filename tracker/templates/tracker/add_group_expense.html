@@ -1,0 +1,155 @@
+{% extends 'tracker/base.html' %}
+{% load static %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Add Expense to "{{ group.name }}"</h2>
+
+    <form id="group-expense-form" method="POST" action="{% url 'save_group_split_expense' group_id=group.id %}">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <input type="text" class="form-control" id="description" name="description" required>
+        </div>
+        <div class="mb-3">
+            <label for="amount" class="form-label">Amount (Rs)</label>
+            <input type="number" step="0.01" class="form-control" id="amount" name="amount" required>
+        </div>
+
+        <div id="simple-split-view">
+            <div class="alert alert-secondary" role="alert">
+                Paid by 
+                <button type="button" class="btn btn-light btn-sm" id="paid-by-btn">You</button>
+                and split 
+                <button type="button" class="btn btn-light btn-sm" id="change-split-btn">Equally</button>.
+            </div>
+            
+            <div id="member-list" class="list-group mb-3" style="display:none;">
+                {% for member in group.members.all %}
+                <label class="list-group-item list-group-item-action">
+                    <input class="form-check-input me-2" type="radio" name="paid_by" value="{{ member.id }}" data-name="{{ member.name }}" {% if member.id == request.session.user.id %}checked{% endif %}>
+                    {{ member.name }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div id="advanced-split-view" class="card mb-3" style="display:none;">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="split-method-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-method="equal">Equally</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-method="exact">By Exact Amounts</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-method="percentage">By Percentage</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-method="shares">By Shares</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                
+                <div id="split-equal-content">
+                    <p class="mb-2">Split equally among:</p>
+                    <button type="button" id="select-all-btn" class="btn btn-sm btn-outline-primary mb-2">Select All</button>
+                    <button type="button" id="select-none-btn" class="btn btn-sm btn-outline-secondary mb-2">Select None</button>
+                    
+                    <div id="equal-split-list">
+                        {% for member in group.members.all %}
+                        <div class="form-check mb-2">
+                            <input class="form-check-input split-member-check" type="checkbox" value="{{ member.id }}" id="split_check_{{ member.id }}" checked>
+                            <label class="form-check-label" for="split_check_{{ member.id }}">{{ member.name }}</slabel>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-2 alert alert-info" id="equal-split-summary">
+                        </div>
+                </div>
+
+                <div id="split-exact-content" style="display:none;">
+                    <p>Enter the amount for each member:</p>
+                    <div id="exact-split-list">
+                        {% for member in group.members.all %}
+                        <div class="row g-2 align-items-center mb-2">
+                            <div class="col-5">
+                                <label for="exact_share_{{ member.id }}" class="col-form-label">{{ member.name }}</label>
+                            </div>
+                            <div class="col-7">
+                                <div class="input-group">
+                                    <span class="input-group-text">Rs</span>
+                                    <input type="number" step="0.01" class="form-control exact-amount-input" id="exact_share_{{ member.id }}" data-member-id="{{ member.id }}" placeholder="0.00">
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-3 alert" id="exact-split-summary">
+                        </div>
+                </div>
+
+                <div id="split-percentage-content" style="display:none;">
+                    <p>Enter the percentage for each member:</p>
+                    <div id="percentage-split-list">
+                        {% for member in group.members.all %}
+                        <div class="row g-2 align-items-center mb-2">
+                            <div class="col-5">
+                                <label for="percentage_share_{{ member.id }}" class="col-form-label">{{ member.name }}</label>
+                            </div>
+                            <div class="col-7">
+                                <div class="input-group">
+                                    <input type="number" step="1" class="form-control percentage-input" id="percentage_share_{{ member.id }}" data-member-id="{{ member.id }}" placeholder="0">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-3 alert" id="percentage-split-summary">
+                        </div>
+                </div>
+
+                <div id="split-shares-content" style="display:none;">
+                    <p>Enter the number of shares for each member:</p>
+                    <div id="shares-split-list">
+                        {% for member in group.members.all %}
+                        <div class="row g-2 align-items-center mb-2">
+                            <div class="col-5">
+                                <label for="share_{{ member.id }}" class="col-form-label">{{ member.name }}</label>
+                            </div>
+                            <div class="col-7">
+                                <div class="input-group">
+                                    <input type="number" step="1" class="form-control share-input" id="share_{{ member.id }}" data-member-id="{{ member.id }}" placeholder="1">
+                                    <span class="input-group-text">shares</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-3 alert alert-info" id="shares-split-summary">
+                        </div>
+                </div>
+
+                <hr>
+                <button type="button" id="fewer-options-btn" class="btn btn-link btn-sm">Fewer options</button>
+            </div>
+        </div>
+        
+        <input type="hidden" id="split-method-field" name="split_method" value="equal">
+        {% for member in group.members.all %}
+            <input type="hidden" class="member-share-field" id="share_field_{{ member.id }}" name="share_{{ member.id }}" value="0">
+        {% endfor %}
+
+        <button type="submit" class="btn btn-primary">Save Expense</button>
+        <a href="{% url 'group_details' group_id=group.id %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+
+{% endblock %}
+
+{% block scripts %}
+    <script src="{% static 'tracker/js/group_split_expenses.js' %}"></script>
+{% endblock %}

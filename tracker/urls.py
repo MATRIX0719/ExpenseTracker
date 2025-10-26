@@ -25,4 +25,10 @@ urlpatterns = [
     #Phase 3
     path('groups/',views.groups_dashboard,name='groups'),
     path('create-group/',views.create_group,name='create_group'),
+    #Group expense details
+    path('group/<int:group_id>/', views.group_details, name='group_details'),
+    path('group/<int:group_id>/remove/', views.remove_from_group, name='remove_from_group'),
+    path('group/<int:group_id>/add_members/', views.add_members, name='add_members'),
+    path('group/<int:group_id>/add_expense/', views.add_group_expense, name='add_group_expense'),
+    path('group/<int:group_id>/save_expense/', views.save_group_split_expense, name='save_group_split_expense'),
 ]

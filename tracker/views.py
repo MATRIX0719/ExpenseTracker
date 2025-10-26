@@ -1,16 +1,18 @@
 from urllib import request
-from . models import Friend, UserRegistration,Expense,FriendExpense,Groups
+from . models import Friend, UserRegistration,Expense,FriendExpense,Groups,GroupExpense,GroupExpenseSplit
 from django.db.models import Q
 from django.shortcuts import render, redirect
 from django.http import HttpResponse,JsonResponse
 from django.contrib import messages
 from django.core.mail import send_mail
+from django.conf import settings
 import random
 from django.views.decorators.cache import never_cache
 from django.shortcuts import get_object_or_404
 from datetime import datetime
 from django.db.models import Sum, Avg
 from django.urls import reverse
+from django.db import transaction
 # Create your views here.
 
 def index(request):
@@ -18,7 +20,7 @@ def index(request):
 
 @never_cache
 def register(request):
-      # If user is already logged in, redirect to landing page
+    # If user is already logged in, redirect to landing page
     if request.session.get('username'):
         return redirect('landing_page')
     # Retrieving the form data and allowing user to register
@@ -47,11 +49,10 @@ def register(request):
             request.session['password'] = password               #Not safe, we should hash it first and then store it
             request.session['generated_otp'] = otp_code
             
-            #Sending OTP to the user's email
             send_mail(
                 subject='Your OTP Code',
                 message=f'Hello {name}, your OTP is {otp_code}.',
-                from_email="yashp07052004@gmail.com",
+                from_email=settings.EMAIL_HOST_USER,
                 recipient_list=[email],
                 fail_silently=False,
             )
@@ -77,6 +78,8 @@ def otp_page(request):
 
             #Removing OTP from session data
             request.session.pop('generated_otp', None)
+            #Storing user id in session so after registration, login can be bypassed and we have the user_id on the server side.
+            request.session['user_id'] = user.id
             messages.success(request, "Registration Successful! You can now log in.")
             return redirect('login')
 
@@ -110,11 +113,9 @@ def login_page(request):
             request.session['user_id'] = user.id
             request.session['username'] = user.name
 
-
             messages.success(request, "Login Successful!")
             return redirect('landing_page')
         
-
         except UserRegistration.DoesNotExist:
             messages.error(request, "Invalid Credentials. Please try again.")
             return redirect('login')
@@ -137,6 +138,7 @@ def landing_page(request):
 #Personal Dashboard
 @never_cache
 def personal_dashboard(request):
+    user_id = request.session.get('user_id')
     if 'username' not in request.session:
         messages.error(request, "Please log in to access this page.")
         return redirect('login')
@@ -165,7 +167,6 @@ def personal_dashboard(request):
     else:
         expenses = expenses.order_by('-date')  # Default sorting by date descending
 
-    
     #Statistics Section
     total_spent = expenses.aggregate(total = Sum('amount'))['total'] or 0
     avg_spent = expenses.aggregate(avg=Avg('amount'))['avg'] or 0
@@ -195,12 +196,6 @@ def personal_dashboard(request):
     return render(request, 'tracker/personal.html', context)
 
 #Friends Dashboard
-
-    if 'username' not in request.session:
-        messages.error(request, "Please log in to access this page.")
-    return render(request, 'tracker/friends.html')
-
-#Friends Dashboard
 def friends_dashboard(request):
     if 'username' not in request.session:
         messages.error(request, "Please log in to access this page.")
@@ -211,6 +206,7 @@ def friends_dashboard(request):
         friends = Friend.objects.filter(user_id=user_id)
     return render(request, 'tracker/friends.html', {'friends': friends})
 
+#changes
 def add_friend(request):
     if request.method == 'POST':
         friend_email = request.POST.get('friend_email')
@@ -219,7 +215,8 @@ def add_friend(request):
         try:
             friend_user = UserRegistration.objects.get(email=friend_email)
             user = UserRegistration.objects.get(id=request.session.get('user_id'))
-            #Create a Friend instance 
+            #Create a Friend instance
+            #Linking the two users in the Friend model - one as the current user and the other as the friend (Parenthesis logic)
             Friend.objects.create(user=user, friend_user=friend_user)
             messages.success(request, "Friend added successfully!")
             #Send invite email
@@ -247,7 +244,7 @@ def friend_details(request, friend_id):
     #passing user and friend to the template from this view
     user = UserRegistration.objects.get(id=user_id)
     friend = UserRegistration.objects.get(id=friend_id)
-    friend = UserRegistration.objects.get(id=friend_id)
+    #Most importantly, fetch expenses shared between the two users
     expenses = FriendExpense.objects.filter(
         Q(user_id=user_id, friend_user_id=friend_id) |
         Q(user_id=friend_id, friend_user_id=user_id)
@@ -257,10 +254,11 @@ def friend_details(request, friend_id):
         'friend': friend,
         'expenses': expenses,
         'total_expenses': total_expenses,
-        'user':user
+        'user':user,
     }
     return render(request, 'tracker/friend_details.html', context)
 
+#changes
 def remove_friend(request,friend_id):
     if request.method == 'POST':
         user_id = request.session.get('user_id')
@@ -309,7 +307,7 @@ def expense_details(request, friend_id):
     title = request.GET.get('title', '')
     description = request.GET.get('description', '')
     category = request.GET.get('category', '')
-    amount = float(request.GET.get('amount', 0))
+    amount = (request.GET.get('amount', 0))
     paid_by = int(request.GET.get('paid_by', user_id))
     return render(request, 'tracker/expense_details.html', {
         'user': user,
@@ -377,11 +375,48 @@ def groups_dashboard(request):
     if 'username' not in request.session:
         messages.error(request, "Please log in to access this page.")
         return redirect('login')
+    user_id = request.session.get('user_id')
+    user = UserRegistration.objects.get(id=user_id)
+
+    #Get the selected filter option from GET parameters
+    # selected_filter = request.GET.get('filter', 'none')
+
+    groups = Groups.objects.filter(members=user)
+
+    #Total amt user owes across all groups
+    # overall_owe = (
+    #     GroupExpense.objects.filter(
+    #         Q(owed_by=user) & ~Q(balance__lt=0) #user owes negative balance
+    # ).aggregate(total_owed=Sum('balance'))['total'] or 0
+    # )
+    # overall_owe = abs(overall_owe)
+
+    #Filtering Logic
+    # if selected_filter == 'balances':
+    #     groups = groups.filter(groupexpense__balance__ne=0).distinct()
+    # elif selected_filter == 'you_owe':
+    #     groups = groups.filter(groupexpense__owed_by=user, groupexpense__balance__lt=0).distinct()
+    # elif selected_filter == 'you_are_owed':
+    #     groups = groups.filter(groupexpense__owed_by=user, groupexpense__balance__gt=0).distinct()
+    # 'none' → no filter applied
+
+    #Get filter from Dropdown
+    filter_option = request.GET.get('filter', 'None')
+
+    if filter_option == 'None':
+        filtered_groups = groups
     else:
-        user_id = request.session.get('user_id')
-        user = UserRegistration.objects.get(id=user_id)
-        groups = Groups.objects.filter(members=user)
-    return render(request, 'tracker/groups.html', {'groups' : groups})
+        filtered_groups = groups
+
+
+    overall_owe = 0  # Placeholder for overall owe calculation
+
+    context = {
+        'groups': groups,
+        'filter_option': filter_option,
+        'overall_owe': overall_owe,
+    }
+    return render(request, 'tracker/groups.html', context)
 
 def create_group(request):
     if 'username' not in request.session:
@@ -399,10 +434,227 @@ def create_group(request):
         if name and category:
             group = Groups.objects.create(name=name, category=category, created_by=user)
             messages.success(request, "Group created successfully!")
-            return redirect('groups')
+            return redirect('group_details', group_id=group.id)
         else:
             messages.error(request,"Please fill all fields.")
     return render(request, 'tracker/create_group.html')
+
+def remove_from_group(request, group_id):
+    #Removes current user's membership from the group.
+    if request.method == 'POST':
+        user_id = request.session.get('user_id')
+        user = UserRegistration.objects.get(id=user_id)
+        group = get_object_or_404(Groups, id=group_id)
+
+        # Remove the user's membership from the group
+        group.members.remove(user)
+        
+        # Optional: If the user was the last member, delete the group entirely
+        if group.members.count() == 0:
+            group.delete()
+            messages.info(request, f"You left '{group.name}', and the group has been deleted as you were the last member.")
+        else:
+            messages.success(request, f"You have successfully left the group '{group.name}'.")
+            
+    return redirect('groups')
+
+def group_details(request, group_id):
+    if 'username' not in request.session:
+        messages.error(request, "Please log in to access this page.")
+        return redirect('login')
+
+    #Get current user to pass to the template for checks
+    user_id = request.session.get('user_id')
+    user = UserRegistration.objects.get(id=user_id)
+    group = get_object_or_404(Groups, id=group_id)
+
+    #Fetch all group expenses with related splits
+    expenses = GroupExpense.objects.filter(group=group).prefetch_related('splits', 'paid_by')
+
+    # Optional: total balance for this user in this group
+    # total_owe = GroupExpenseSplit.objects.filter(user=user, expense__group=group).aggregate(total=models.Sum('amount_owed'))['total'] or 0
+
+
+    #Displays details of the specific group, including its members
+    # group = get_object_or_404(Groups, id=group_id)
+    # members = group.members.all()
+
+    context = {
+        'group': group,
+        'expenses': expenses,
+        'current_user': user,
+    }
+    return render(request, 'tracker/group_details.html', context)
+
+def add_members(request, group_id):
+    #Handles adding new members to a group from the user's friend list
+    group = get_object_or_404(Groups, id=group_id)
+    user = UserRegistration.objects.get(id=request.session.get('user_id'))
+
+    if request.method == 'POST':
+        members_to_add_ids = request.POST.getlist('members')
+        for member_id in members_to_add_ids:
+            friend_to_add = UserRegistration.objects.get(id=member_id)
+            group.members.add(friend_to_add)
+        messages.success(request, "New members added successfully!")
+        return redirect('group_details', group_id=group.id)
+
+    # GET Request Logic:
+    current_members = group.members.all()
+    friends = Friend.objects.filter(user=user)
+
+    # Create a list of friends who are not already in the group
+    available_friends = []
+    for friend_relation in friends:
+        if friend_relation.friend_user not in current_members:
+            available_friends.append(friend_relation.friend_user)
+    
+    context = {
+        'group': group,
+        'available_friends': available_friends
+    }
+    return render(request, 'tracker/add_members.html', context)
+
+def add_group_expense(request, group_id):
+    """A placeholder view to render the 'Add Group Expense' page."""
+    if 'username' not in request.session:
+        messages.error(request, "Please log in to access this page.")
+        return redirect('login')
+    
+    user_id = request.session.get('user_id')
+    user = UserRegistration.objects.get(id=user_id)
+    group = get_object_or_404(Groups, id=group_id)
+    
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        amount = request.POST.get('amount')
+        category = request.POST.get('category')
+        description = request.POST.get('description')
+
+        #Save Expense
+        expense = GroupExpense.objects.create(
+            group=group,
+            paid_by=user,
+            title=title,
+            amount=amount,
+            category=category,
+            description=description,
+        )
+
+        # Equal split among all members
+        members = group.members.all()
+        share = amount / len(members)
+        for member in members:
+            GroupExpenseSplit.objects.create(
+                expense=expense,
+                user=member,
+                amount_owed=0 if member == user else share,
+            )
+
+        messages.success(request, "Group expense added successfully!")
+        return redirect('group_details', group_id=group.id)
+    
+    context = {'group': group}
+    return render(request, 'tracker/add_group_expense.html', context)
+
+#New and most complex view to save group expenses
+def save_group_split_expense(request, group_id):
+    if request.method == 'POST':
+        try:
+            # 1. Get user and group
+            user_id = request.session.get('user_id')
+            if not user_id:
+                return JsonResponse({'status': 'error', 'message': 'User not authenticated.'}, status=401)
+            
+            group = get_object_or_404(Groups, id=group_id)
+            # paid_by_user = get_object_or_404(UserRegistration, id=request.POST.get('paid_by'))
+
+            #New validation By Gemini
+            paid_by_id = request.POST.get('paid_by')
+            if not paid_by_id:
+                # This error will be shown to the user if the JS somehow fails
+                return JsonResponse({'status': 'error', 'message': '"Paid by" field is missing. Please select who paid.'}, status=400)
+            
+            try:
+                # We also wrap the 'get' in a try/except to be safe
+                paid_by_user = get_object_or_404(UserRegistration, id=int(paid_by_id))
+            except (ValueError, TypeError, UserRegistration.DoesNotExist):
+                return JsonResponse({'status': 'error', 'message': 'Invalid "Paid by" user selected.'}, status=400)
+            # ** NEW VALIDATION ENDS HERE **
+
+            # Check if the logged-in user is part of this group (optional but good security)
+            if not group.members.filter(id=user_id).exists():
+                 return JsonResponse({'status': 'error', 'message': 'You are not a member of this group.'}, status=403)
+
+            # 2. Get basic expense data
+            total_amount = float(request.POST.get('amount'))
+            
+            # --- Field Mapping ---
+            # Your form has 'description', but your model has 'title' and 'category'.
+            # We will map the form's 'description' to the model's 'title'.
+            # We'll set a default category since the form doesn't provide one.
+            title = request.POST.get('description')
+            category = request.POST.get('category', 'General') # Defaulting category
+
+            # 3. Use a transaction for safety
+            # This ensures we either create the expense AND all its splits, or nothing.
+            with transaction.atomic():
+                # 4. Create the main GroupExpense
+                new_expense = GroupExpense.objects.create(
+                    group=group,
+                    paid_by=paid_by_user,
+                    title=title,
+                    amount=total_amount,
+                    category=category
+                    # Description field is blank in your model, so we skip it
+                )
+
+                # 5. Loop through group members to get their shares
+                group_members = group.members.all()
+                splits_to_create = []
+                total_share_check = 0.0
+
+                for member in group_members:
+                    # This key matches the 'name' attribute in the form's hidden fields:
+                    # name="share_{{ member.id }}"
+                    share_key = f'share_{member.id}' 
+                    
+                    # Get the share amount from the POST data, default to 0.0
+                    member_share = float(request.POST.get(share_key, 0.0))
+
+                    # This is the user's share of the bill (what they are responsible for)
+                    if member_share > 0:
+                        total_share_check += member_share
+                        splits_to_create.append(
+                            GroupExpenseSplit(
+                                expense=new_expense,
+                                user=member,
+                                amount_owed=member_share  # This model correctly stores the share
+                            )
+                        )
+                
+                # 6. Validation: Check if splits add up to the total
+                # We use a small tolerance (e.g., 0.01) for floating-point math errors
+                if abs(total_share_check - total_amount) > 0.01:
+                    # This error will automatically roll back the transaction
+                    raise Exception(f"Split amounts (Rs {total_share_check:.2f}) do not match total expense (Rs {total_amount:.2f}).")
+
+                # 7. Save all splits to the database at once
+                GroupExpenseSplit.objects.bulk_create(splits_to_create)
+
+            # 8. Success: Send JSON response back to the JavaScript
+            messages.success(request, 'Expense saved successfully!')
+            redirect_url = reverse('group_details', kwargs={'group_id': group_id})
+            return JsonResponse({'status': 'success', 'redirect_url': redirect_url})
+
+        except (UserRegistration.DoesNotExist, Groups.DoesNotExist):
+            return JsonResponse({'status': 'error', 'message': 'Invalid user or group.'}, status=404)
+        except Exception as e:
+            # Catch any other error (like float conversion, validation, etc.)
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    # Handle non-POST requests
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
 
 
 #Activity Dashboard
@@ -440,7 +692,7 @@ def add_expense(request):
 
         #Show success message
         messages.success(request, "Expense added successfully!")
-        return redirect('landing_page')
+        return redirect('personal_dashboard')
 
     return render(request, 'tracker/add_expense.html')
 

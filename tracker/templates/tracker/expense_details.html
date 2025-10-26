@@ -11,47 +11,42 @@
      data-friendid="{{ friend.id }}"
      class="card shadow p-4 mt-4 text-center">
 
-    <div id="simple-options">
-        <h3 class="mb-4">How was this expense split?</h3>
-        <div id="split-options" class="mb-4">
-            <div class="option mb-2">
-                <input type="radio" name="split_type" id="split_equal" value="equal" checked>
-                <label for="split_equal">User paid, split equally.<br>
-                    <small>{{ friend.name }} owes you Rs {{ amount|floatformat:2 }}/2</small>
-                </label>
-            </div>
-            <div class="option mb-2">
-                <input type="radio" name="split_type" id="split_user_full" value="user_full">
-                <label for="split_user_full">User is owed the full amount.<br>
-                    <small>{{ friend.name }} owes you Rs {{ amount|floatformat:2 }}</small>
-                </label>
-            </div>
-            <div class="option mb-2">
-                <input type="radio" name="split_type" id="split_friend_equal" value="friend_equal">
-                <label for="split_friend_equal">Friend paid, split equally.<br>
-                    <small>You owe {{ friend.name }} Rs {{ amount|floatformat:2 }}/2</small>
-                </label>
-            </div>
-            <div class="option mb-2">
-                <input type="radio" name="split_type" id="split_friend_full" value="friend_full">
-                <label for="split_friend_full">Friend is owed the full amount.<br>
-                    <small>You owe {{ friend.name }} Rs {{ amount|floatformat:2 }}</small>
-                </label>
-            </div>
+    <div id="simple-split-view">
+        <div class="alert alert-secondary" role="alert" style="font-size: 1.1rem;">
+            Paid by 
+            <button type="button" class="btn btn-light btn-lg" id="paid-by-btn">You</button>
+            and split 
+            <button type="button" class="btn btn-light btn-lg" id="change-split-btn">Equally</button>.
         </div>
     </div>
 
-    <button class="btn btn-outline-secondary mb-3" id="more-options-btn" type="button">More options</button>
-    <div id="more-options" style="display:none;">
-        <h5 id="split-heading">Split equally</h5>
-        <div class="split-methods mb-3">
-            <button type="button" class="split-btn selected" data-method="equal">=</button>
-            <button type="button" class="split-btn" data-method="exact">1.23</button>
-            <button type="button" class="split-btn" data-method="percent">%</button>
-            <button type="button" class="split-btn" data-method="adjust">+/-</button>
-            <button type="button" class="split-btn" data-method="shares">shares</button>
+    <div id="advanced-split-view" class="card mb-3" style="display:none;">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" id="split-method-tabs">
+                <li class="nav-item">
+                    <a class="nav-link split-btn active" href="#" data-method="equal" title="Equally">=</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link split-btn" href="#" data-method="exact" title="Exact Amount">1.23</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link split-btn" href="#" data-method="percent" title="Percentage">%</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link split-btn" href="#" data-method="adjust" title="Adjustment">+/-</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link split-btn" href="#" data-method="shares" title="Shares">Shares</a>
+                </li>
+            </ul>
         </div>
-        <div id="split-content"></div>
+        <div class="card-body">
+            <h5 id="split-heading">Split equally</h5>
+            <div id="split-content" class="mt-3"></div>
+
+            <hr>
+            <button type="button" id="fewer-options-btn" class="btn btn-link btn-sm">Fewer options</button>
+        </div>
     </div>
 
     <form id="split-expense-form" class="mt-4">
@@ -60,15 +55,18 @@
         <input type="hidden" name="description" value="{{ description }}">
         <input type="hidden" name="category" value="{{ category }}">
         <input type="hidden" name="amount" value="{{ amount }}">
+        
         <input type="hidden" name="paid_by" id="paid_by_field" value="{{ user.id }}">
+        
         <input type="hidden" name="split_method" id="split_method_field" value="equal">
+        
         <input type="hidden" name="user_share" id="user_share_field" value="{{ amount|floatformat:2 }}">
         <input type="hidden" name="friend_share" id="friend_share_field" value="0">
+        
         <button type="submit" class="btn btn-success mt-3" id="save-split-btn">Save Split</button>
     </form>
 </div>
 {% endblock %}
-
 {% block scripts %}
-<script src="{% static 'tracker/js/split_expenses.js' %}"></script>
+    <script src="{% static 'tracker/js/group_split_expenses.js' %}"></script>
 {% endblock %}

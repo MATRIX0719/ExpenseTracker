@@ -1,0 +1,28 @@
+{% extends 'tracker/base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Add Members to "{{ group.name }}"</h2>
+    <p>Select friends to add to the group.</p>
+
+    {% if available_friends %}
+    <form action="{% url 'add_members' group_id=group.id %}" method="POST">
+        {% csrf_token %}
+        <div class="list-group mb-3">
+            {% for friend in available_friends %}
+            <label class="list-group-item">
+                <input class="form-check-input me-1" type="checkbox" name="members" value="{{ friend.id }}">
+                {{ friend.name }}
+            </label>
+            {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary">Add Selected Members</button>
+        <a href="{% url 'group_details' group_id=group.id %}" class="btn btn-secondary">Cancel</a>
+    </form>
+    {% else %}
+    <div class="alert alert-info">
+        All of your friends are already in this group.
+    </div>
+    <a href="{% url 'group_details' group_id=group.id %}" class="btn btn-secondary">Back to Group</a>
+    {% endif %}
+</div>
+{% endblock %}

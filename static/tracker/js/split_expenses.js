@@ -1,65 +1,120 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const root = document.getElementById('split-root');
-    const amount = parseFloat(root.dataset.amount);
-    const userName = root.dataset.username;
-    const userId = parseInt(root.dataset.userid);
-    const friendName = root.dataset.friendname;
-    const friendId = parseInt(root.dataset.friendid);
 
-    const splitBtns = document.querySelectorAll('.split-btn');
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // --- 1. Get All Elements & Data ---
+    const form = document.getElementById('add-expense-form');
+    const amountInput = document.getElementById('amount'); 
+    
+    const userName = form.dataset.username;
+    const userId = parseInt(form.dataset.userid);
+    const friendName = form.dataset.friendname;
+    const friendId = parseInt(form.dataset.friendid);
+
+    // View Toggling
+    const simpleSplitView = document.getElementById('simple-split-view');
+    const advancedSplitView = document.getElementById('advanced-split-view');
+    const changeSplitBtn = document.getElementById('change-split-btn');
+    const fewerOptionsBtn = document.getElementById('fewer-options-btn');
+
+    // "Paid By" Elements (NEW)
+    const paidByBtn = document.getElementById('paid-by-btn');
+    const payerList = document.getElementById('payer-list'); // The new dropdown
+    const paidByRadios = document.querySelectorAll('input[name="paid_by_radio"]');
+    
+    // Advanced View Tabs
+    const splitBtns = document.querySelectorAll('#split-method-tabs .nav-link');
     const splitHeading = document.getElementById('split-heading');
     const splitContent = document.getElementById('split-content');
-    const moreOptionsBtn = document.getElementById('more-options-btn');
-    const moreOptionsDiv = document.getElementById('more-options');
-    const splitExpenseForm = document.getElementById('split-expense-form');
-    const simpleOptionsDiv = document.getElementById('simple-options'); // Added
+    
+    // Hidden Fields
+    const paidByField = document.getElementById('paid_by_field');
+    const splitMethodField = document.getElementById('split_method_field');
+    const userShareField = document.getElementById('user_share_field');
+    const friendShareField = document.getElementById('friend_share_field');
 
-    // Default state
-    let selectedMethod = 'equal';
+    // --- 2. State ---
+    let currentMethod = 'equal'; // Default to split equally
 
-    // Utility functions for rendering split methods (no changes here)
+    // --- 3. Helper function to get amount ---
+    function getTotalAmount() {
+        return parseFloat(amountInput.value) || 0;
+    }
+
+    // --- 4. View Toggling Logic ---
+    changeSplitBtn.addEventListener('click', function() {
+        simpleSplitView.style.display = 'none';
+        advancedSplitView.style.display = 'block';
+        payerList.style.display = 'none'; // Hide payer list if open
+        runCurrentRender();
+    });
+    fewerOptionsBtn.addEventListener('click', function() {
+        advancedSplitView.style.display = 'none';
+        simpleSplitView.style.display = 'block';
+    });
+
+    // --- 5. "Paid By" Logic (MODIFIED) ---
+    // Sets button text on initial load
+    function setInitialPaidByButton() {
+        const checkedRadio = document.querySelector('input[name="paid_by_radio"]:checked');
+        if (checkedRadio) {
+            paidByBtn.textContent = checkedRadio.dataset.name;
+            paidByField.value = checkedRadio.value;
+        }
+    }
+    
+    // Toggles the dropdown
+    paidByBtn.addEventListener('click', function() {
+        payerList.style.display = payerList.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Handles selection from the dropdown
+    paidByRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.checked) {
+                paidByBtn.textContent = this.dataset.name;
+                paidByField.value = this.value;
+                payerList.style.display = 'none'; // Hide list after selection
+            }
+        });
+    });
+
+    // --- 6. Render Functions (REMOVED renderAdjust) ---
+    
     function renderEqual() {
+        const amount = getTotalAmount();
         splitHeading.textContent = 'Split equally';
         splitContent.innerHTML = `
             <table class="table">
-                <tr>
-                    <td>${userName}</td>
-                    <td>Rs ${(amount/2).toFixed(2)}</td>
-                </tr>
-                <tr>
-                    <td>${friendName}</td>
-                    <td>Rs ${(amount/2).toFixed(2)}</td>
-                </tr>
+                <tr><td>${userName}</td><td>Rs ${(amount/2).toFixed(2)}</td></tr>
+                <tr><td>${friendName}</td><td>Rs ${(amount/2).toFixed(2)}</td></tr>
             </table>
             <div>Rs ${(amount/2).toFixed(2)}/person (2 people)</div>
         `;
-        document.getElementById('user_share_field').value = (amount/2).toFixed(2);
-        document.getElementById('friend_share_field').value = (amount/2).toFixed(2);
-        document.getElementById('split_method_field').value = 'equal';
-        document.getElementById('paid_by_field').value = userId;
+        userShareField.value = (amount/2).toFixed(2);
+        friendShareField.value = (amount/2).toFixed(2);
     }
 
     function renderExact() {
+        const amount = getTotalAmount();
         splitHeading.textContent = 'Split by exact amounts';
         splitContent.innerHTML = `
-            <div>
-                <label>${userName}: <input type="number" step="0.01" min="0" id="exact-user" class="form-control" style="width:100px;display:inline;"></label>
-            </div>
-            <div>
-                <label>${friendName}: <input type="number" step="0.01" min="0" id="exact-friend" class="form-control" style="width:100px;display:inline;"></label>
-            </div>
-            <div id="exact-summary" class="mt-2"></div>
+            <div><label>${userName}: <input type="number" step="0.01" min="0" id="exact-user" class="form-control" style="width:100px;display:inline;"></label></div>
+            <div><label>${friendName}: <input type="number" step="0.01" min="0" id="exact-friend" class="form-control" style="width:100px;display:inline;"></label></div>
+            <div id="exact-summary" class="mt-2 alert alert-info">Rs 0.00 of Rs ${amount.toFixed(2)}</div>
         `;
         function updateSummary() {
+            const amount = getTotalAmount();
             const userVal = parseFloat(document.getElementById('exact-user').value) || 0;
             const friendVal = parseFloat(document.getElementById('exact-friend').value) || 0;
             const total = userVal + friendVal;
-            let summary = `Rs ${total.toFixed(2)} of Rs ${amount.toFixed(2)}<br>`;
-            summary += `Rs ${(amount-total).toFixed(2)} left`;
-            document.getElementById('exact-summary').innerHTML = summary;
-            document.getElementById('user_share_field').value = userVal.toFixed(2);
-            document.getElementById('friend_share_field').value = friendVal.toFixed(2);
-            document.getElementById('split_method_field').value = 'exact';
+            const remaining = amount - total;
+            
+            const summaryEl = document.getElementById('exact-summary');
+            summaryEl.innerHTML = `Rs ${total.toFixed(2)} of Rs ${amount.toFixed(2)}<br>Rs ${remaining.toFixed(2)} left`;
+            summaryEl.className = (remaining.toFixed(2) == '0.00') ? 'mt-2 alert alert-success' : 'mt-2 alert alert-danger';
+            
+            userShareField.value = userVal.toFixed(2);
+            friendShareField.value = friendVal.toFixed(2);
         }
         document.getElementById('exact-user').addEventListener('input', updateSummary);
         document.getElementById('exact-friend').addEventListener('input', updateSummary);
@@ -68,173 +123,115 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderPercent() {
         splitHeading.textContent = 'Split by percentage';
         splitContent.innerHTML = `
-            <div>
-                <label>${userName}: <input type="number" step="1" min="0" max="100" id="percent-user" class="form-control" style="width:80px;display:inline;"> %</label>
-            </div>
-            <div>
-                <label>${friendName}: <input type="number" step="1" min="0" max="100" id="percent-friend" class="form-control" style="width:80px;display:inline;"> %</label>
-            </div>
-            <div id="percent-summary" class="mt-2"></div>
+            <div><label>${userName}: <input type="number" step="1" min="0" max="100" id="percent-user" class="form-control" style="width:80px;display:inline;"> %</label></div>
+            <div><label>${friendName}: <input type="number" step="1" min="0" max="100" id="percent-friend" class="form-control" style="width:80px;display:inline;"> %</label></div>
+            <div id="percent-summary" class="mt-2 alert alert-info">0% of 100%</div>
         `;
         function updateSummary() {
+            const amount = getTotalAmount();
             const userVal = parseFloat(document.getElementById('percent-user').value) || 0;
             const friendVal = parseFloat(document.getElementById('percent-friend').value) || 0;
+            const totalPercent = userVal + friendVal;
             const userAmt = amount * (userVal/100);
             const friendAmt = amount * (friendVal/100);
-            let summary = `${userVal+friendVal}% of 100%<br>`;
-            summary += `${(100-userVal-friendVal)}% left`;
-            document.getElementById('percent-summary').innerHTML = summary;
-            document.getElementById('user_share_field').value = userAmt.toFixed(2);
-            document.getElementById('friend_share_field').value = friendAmt.toFixed(2);
-            document.getElementById('split_method_field').value = 'percent';
+            
+            const summaryEl = document.getElementById('percent-summary');
+            summaryEl.innerHTML = `${totalPercent.toFixed(0)}% of 100%<br>${(100-totalPercent).toFixed(0)}% left`;
+            summaryEl.className = (totalPercent.toFixed(0) == 100) ? 'mt-2 alert alert-success' : 'mt-2 alert alert-danger';
+
+            userShareField.value = userAmt.toFixed(2);
+            friendShareField.value = friendAmt.toFixed(2);
         }
         document.getElementById('percent-user').addEventListener('input', updateSummary);
         document.getElementById('percent-friend').addEventListener('input', updateSummary);
     }
-
-    function renderAdjust() {  
-        splitHeading.textContent = 'Split by adjustments';
-        splitContent.innerHTML = `
-            <div>
-                <label>${userName}: <span>Rs ${(amount/2).toFixed(2)}</span> + <input type="number" step="0.01" id="adjust-user" class="form-control" style="width:80px;display:inline;"></label>
-            </div>
-            <div>
-                <label>${friendName}: <span>Rs ${(amount/2).toFixed(2)}</span> + <input type="number" step="0.01" id="adjust-friend" class="form-control" style="width:80px;display:inline;"></label>
-            </div>
-            <div id="adjust-summary" class="mt-2"></div>
-        `;
-        function updateSummary() {
-            const userAdj = parseFloat(document.getElementById('adjust-user').value) || 0;
-            const friendAdj = parseFloat(document.getElementById('adjust-friend').value) || 0;
-            const userTotal = (amount/2) + userAdj;
-            const friendTotal = (amount/2) + friendAdj;
-            let summary = `${userName}: Rs ${userTotal.toFixed(2)}<br>${friendName}: Rs ${friendTotal.toFixed(2)}`;
-            document.getElementById('adjust-summary').innerHTML = summary;
-            document.getElementById('user_share_field').value = userTotal.toFixed(2);
-            document.getElementById('friend_share_field').value = friendTotal.toFixed(2);
-            document.getElementById('split_method_field').value = 'adjust';
-        }
-        document.getElementById('adjust-user').addEventListener('input', updateSummary);
-        document.getElementById('adjust-friend').addEventListener('input', updateSummary);
-    }
+    
+    // 'renderAdjust' function has been removed
 
     function renderShares() {
         splitHeading.textContent = 'Split by shares';
         splitContent.innerHTML = `
-            <div>
-                <label>${userName}: <span>Rs ${(amount/2).toFixed(2)}</span> <input type="number" step="0.01" min="0.01" id="shares-user" class="form-control" style="width:80px;display:inline;" value="1"></label>
-            </div>
-            <div>
-                <label>${friendName}: <span>Rs ${(amount/2).toFixed(2)}</span> <input type="number" step="0.01" min="0.01" id="shares-friend" class="form-control" style="width:80px;display:inline;" value="1"></label>
-            </div>
-            <div id="shares-summary" class="mt-2"></div>
+            <div><label>${userName}: <input type="number" step="0.01" min="0" id="shares-user" class="form-control" style="width:80px;display:inline;" value="1"></label> shares</div>
+            <div><label>${friendName}: <input type="number" step="0.01" min="0" id="shares-friend" class="form-control" style="width:80px;display:inline;" value="1"></label> shares</div>
+            <div id="shares-summary" class="mt-2 alert alert-info"></div>
         `;
         function updateSummary() {
-            const userShares = parseFloat(document.getElementById('shares-user').value) || 1;
-            const friendShares = parseFloat(document.getElementById('shares-friend').value) || 1;
+            const amount = getTotalAmount();
+            const userShares = parseFloat(document.getElementById('shares-user').value) || 0;
+            const friendShares = parseFloat(document.getElementById('shares-friend').value) || 0;
             const totalShares = userShares + friendShares;
-            const userAmt = amount * (userShares / totalShares);
-            const friendAmt = amount * (friendShares / totalShares);
-            let summary = `${userName}: Rs ${userAmt.toFixed(2)}<br>${friendName}: Rs ${friendAmt.toFixed(2)}`;
+            
+            const userAmt = (totalShares > 0) ? amount * (userShares / totalShares) : 0;
+            const friendAmt = (totalShares > 0) ? amount * (friendShares / totalShares) : 0;
+            const perShareVal = (totalShares > 0) ? (amount / totalShares) : 0;
+
+            let summary = `Total: ${totalShares} shares (Rs ${perShareVal.toFixed(2)} / share)<br>`;
+            summary += `<b>${userName}:</b> Rs ${userAmt.toFixed(2)}<br><b>${friendName}:</b> Rs ${friendAmt.toFixed(2)}`;
             document.getElementById('shares-summary').innerHTML = summary;
-            document.getElementById('user_share_field').value = userAmt.toFixed(2);
-            document.getElementById('friend_share_field').value = friendAmt.toFixed(2);
-            document.getElementById('split_method_field').value = 'shares';
+            
+            userShareField.value = userAmt.toFixed(2);
+            friendShareField.value = friendAmt.toFixed(2);
         }
         document.getElementById('shares-user').addEventListener('input', updateSummary);
         document.getElementById('shares-friend').addEventListener('input', updateSummary);
         updateSummary();
     }
 
-    // Split method selection
+    // --- 7. Helper to run the correct render function ---
+    function runCurrentRender() {
+        if (currentMethod === 'equal') renderEqual();
+        else if (currentMethod === 'exact') renderExact();
+        else if (currentMethod === 'percent') renderPercent();
+        // 'adjust' removed
+        else if (currentMethod === 'shares') renderShares();
+    }
+
+    // --- 8. Advanced Tab Switching Logic ---
     splitBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            splitBtns.forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            selectedMethod = btn.dataset.method;
-            if (selectedMethod === 'equal') renderEqual();
-            else if (selectedMethod === 'exact') renderExact();
-            else if (selectedMethod === 'percent') renderPercent();
-            else if (selectedMethod === 'adjust') renderAdjust();
-            else if (selectedMethod === 'shares') renderShares();
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            splitBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentMethod = btn.dataset.method;
+            splitMethodField.value = currentMethod;
+            changeSplitBtn.textContent = btn.textContent; 
+            runCurrentRender();
         });
     });
 
-    // Initial render
-    renderEqual();
-
-    // **MODIFIED** Show/hide more options
-    moreOptionsBtn.addEventListener('click', function() {
-        const isHidden = moreOptionsDiv.style.display === 'none';
-        if (isHidden) {
-            // Show advanced options and hide simple ones
-            moreOptionsDiv.style.display = 'block';
-            simpleOptionsDiv.style.display = 'none';
-            moreOptionsBtn.textContent = 'Fewer options';
-            // Trigger the default advanced view
-            renderEqual(); 
-        } else {
-            // Hide advanced options and show simple ones
-            moreOptionsDiv.style.display = 'none';
-            simpleOptionsDiv.style.display = 'block';
-            moreOptionsBtn.textContent = 'More options';
-            // Reset to the default simple radio button state
-            document.getElementById('split_equal').checked = true;
-            document.getElementById('split_equal').dispatchEvent(new Event('change'));
-        }
+    // --- 9. Listener for Amount Input ---
+    amountInput.addEventListener('input', function() {
+        runCurrentRender();
     });
 
-    // Handle radio buttons for simple split options
-    document.querySelectorAll('input[name="split_type"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            if (this.value === 'equal') {
-                renderEqual();
-                document.getElementById('paid_by_field').value = userId;
-            } else if (this.value === 'user_full') {
-                splitHeading.textContent = 'User is owed the full amount';
-                splitContent.innerHTML = `<div>${friendName} owes you Rs ${amount.toFixed(2)}</div>`;
-                document.getElementById('user_share_field').value = amount.toFixed(2);
-                document.getElementById('friend_share_field').value = 0;
-                document.getElementById('split_method_field').value = 'user_full';
-                document.getElementById('paid_by_field').value = userId;
-            } else if (this.value === 'friend_equal') {
-                splitHeading.textContent = 'Friend paid, split equally';
-                splitContent.innerHTML = `<div>You owe ${friendName} Rs ${(amount/2).toFixed(2)}</div>`;
-                document.getElementById('user_share_field').value = (amount/2).toFixed(2);
-                document.getElementById('friend_share_field').value = (amount/2).toFixed(2);
-                document.getElementById('split_method_field').value = 'friend_equal';
-                document.getElementById('paid_by_field').value = friendId;
-            } else if (this.value === 'friend_full') {
-                splitHeading.textContent = 'Friend is owed the full amount';
-                splitContent.innerHTML = `<div>You owe ${friendName} Rs ${amount.toFixed(2)}</div>`;
-                document.getElementById('user_share_field').value = 0;
-                document.getElementById('friend_share_field').value = amount.toFixed(2);
-                document.getElementById('split_method_field').value = 'friend_full';
-                document.getElementById('paid_by_field').value = friendId;
-            }
-        });
-    });
-
-    // **MODIFIED** AJAX form submission
-    splitExpenseForm.addEventListener('submit', function(e) {
+    // --- 10. AJAX Form Submission ---
+    form.addEventListener('submit', function(e) {
         e.preventDefault();
-        const formData = new FormData(splitExpenseForm);
+        runCurrentRender(); 
 
-        fetch(`/tracker/save_split_expense/${friendId}/`, {
+        // Validation check (removed 'adjust')
+        if (currentMethod === 'exact' && document.getElementById('exact-summary').classList.contains('alert-danger')) {
+            alert('Exact amounts do not add up to the total.'); return;
+        }
+        if (currentMethod === 'percent' && document.getElementById('percent-summary').classList.contains('alert-danger')) {
+            alert('Percentages do not add up to 100%.'); return;
+        }
+        
+        const formData = new FormData(form);
+        const url = form.action;
+
+        fetch(url, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
             },
             body: formData
         })
-        .then(response => response.json()) // 1. Expect and parse JSON
+        .then(response => response.json())
         .then(data => {
-            // 2. Check the status from our JSON response
             if (data.status === 'success' && data.redirect_url) {
-                // 3. Redirect the browser using the URL from the server
                 window.location.href = data.redirect_url;
             } else {
-                // Handle any errors the server might have sent
                 alert(data.message || 'An unexpected error occurred.');
             }
         })
@@ -243,4 +240,8 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Error saving expense split!');
         });
     });
+
+    // --- 11. Initial Page Load ---
+    setInitialPaidByButton(); // Run the new function to set default payer
+    runCurrentRender(); // Run default render ("equal")
 });

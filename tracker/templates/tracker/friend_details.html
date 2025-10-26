@@ -5,9 +5,7 @@
 <div class="card shadow p-4 mt-4">
     <h2>{{ friend.name }}</h2>
     <p>Total expenses between You:₹{{ total_expenses }} </p>
-    <a href="{% url 'add_expense_with_friend' friend.id %}" class="btn btn-primary mb-3">Add Expense</a> 
-
-
+        <a href="{% url 'add_expense_with_friend' friend.id %}" class="btn btn-primary mb-3">Add Expense</a>   
     <h4>Expense List</h4>
     <table class="table table-bordered">
         <thead>
@@ -36,7 +34,7 @@
                         {% else %}
                             You owe {{ friend.name }} ₹{{ expense.amount_owed }}
                         {% endif %}
-                    </td>
+                    </td> 
                 </tr>
             {% empty %}
                 <tr>
