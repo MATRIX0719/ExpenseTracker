@@ -1,20 +1,38 @@
 {% extends 'tracker/base.html' %}
+{% load static %}
 {% block title %}Add Friend{% endblock %}
 
 {% block content %}
-<h2>Add Friend</h2>
+<div class="container py-4">
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+                    <h2 class="text-center mb-4">Add Friend</h2>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Friend's Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Friend's Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="mt-4 d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">Add Friend</button>
+                            <a href="{% url 'friends_dashboard' %}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+                            
+                        </div>
+                    </form>
 
-<form method = 'POST'>
-    {% csrf_token %}
-    <div class="mb-3">
-        <label for="friendname" class="form-label">Friend's Name</label>
-        <input type="text" class="form-control" id="friendname" name="friendname" required>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="mb-3">
-        <label for="friend_email" class="form-label">Friend's Email</label>
-        <input type="email" class="form-control" id="friende_mail" name="friend_email" required>
-    </div>
-    <button type="submit" class="btn btn-primary">Add Friend</button>
-</form>
-
-{% endblock  %}
+</div>
+{% endblock %}

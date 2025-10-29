@@ -1,40 +1,58 @@
 {% extends 'tracker/base.html' %}
-
+{% load static %}
 {% block title %}Add Expense{% endblock %}
 
 {% block content %}
-<div class="card shadow p-4 mt-4">
-    <h2 class="mb-3 text-center">Add New Expense</h2>
+<div class="container py-4">
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8 col-lg-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+                    
+                    <h2 class="text-center mb-4 fw-semibold">Add New Expense</h2> 
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required> 
+                        </div>
 
-    <form method="POST">
-        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Amount (₹)</label>
+                            <input type="number" step="0.01" class="form-control" id="amount" name="amount" required> 
+                        </div>
 
-        <div class="mb-3">
-            <label class="form-label">Title</label>
-            <input type="text" class="form-control" name="title" required>
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select" id="category" name="category">
+                                <option value="Food">Food</option>
+                                <option value="Transport">Transport</option>
+                                <option value="Shopping">Shopping</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="date" name="date" required> 
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description (Optional)</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="mt-4 d-grid gap-2 d-md-flex justify-content-md-end"> 
+                            <a href="{% url 'personal_dashboard' %}" class="btn btn-outline-secondary me-md-2">Cancel</a> 
+                            <button type="submit" class="btn btn-primary">Add Expense</button> 
+                        </div>
+                    </form>
+
+                </div>
+            </div>
         </div>
-
-        <div class="mb-3">
-            <label class="form-label">Amount</label>
-            <input type="number" step="0.01" class="form-control" name="amount" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Category</label>
-            <input type="text" class="form-control" name="category" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Date</label>
-            <input type="date" class="form-control" name="date" required>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Description</label>
-            <textarea class="form-control" name="description"></textarea>
-        </div>
-
-        <button type="submit" class="btn btn-primary w-100">Add Expense</button>
-    </form>
+    </div>
 </div>
 {% endblock %}

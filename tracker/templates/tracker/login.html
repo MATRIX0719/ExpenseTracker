@@ -1,22 +1,39 @@
 {% extends 'tracker/base.html' %}
-
+{% load static %}
 {% block title %}Login{% endblock %}
+{% block body_class %}auth-page{% endblock %}
 
 {% block content %}
-<h2>Login</h2>
+<div class="container d-flex align-items-center justify-content-center min-vh-100">
+    <div class="row justify-content-center w-100">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+                    <h2 class="text-center mb-4 fw-light">Login</h2>
+                    <form method="POST" action="{% url 'login' %}">
+                        {% csrf_token %}
 
-<form method="POST" action="">
-    {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" id="email" name="email" class="form-control" required>
+                        </div>
 
-    <label for = "email"> Email </label>
-    <input type="email" id="email" name="email" class="form-control mb-2" required> <br><br>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" id="password" name="password" class="form-control" required>
+                        </div>
 
-    <label for="password"> Password </label>
-    <input type="password" id="password" name="password" class="form-control mb-2" required> <br><br>
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">Login</button>
+                        </div>
 
-    <button type="submit" class="btn btn-primary"> Login </button> <br><br>
-    <p class="mt-3">
-        Don't have an account? <a href="{% url 'register' %}">Register here</a>
-</form>
-
+                        <p class="text-center">
+                            Don't have an account? <a href="{% url 'register' %}">Register here</a>
+                        </p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -21,6 +21,7 @@ urlpatterns = [
     path('add_expense_with_friend/<int:friend_id>/',views.add_expense_with_friend, name='add_expense_with_friend'),
     path('expense_details/<int:friend_id>/', views.expense_details, name='expense_details'),
     path('save_split_expense/<int:friend_id>/', views.save_split_expense, name='save_split_expense'),
+    path('delete_friend_expense/<int:expense_id>/', views.delete_friend_expense, name='delete_friend_expense'),
 
     #Phase 3
     path('groups/',views.groups_dashboard,name='groups'),
@@ -31,6 +32,7 @@ urlpatterns = [
     path('group/<int:group_id>/add_members/', views.add_members, name='add_members'),
     path('group/<int:group_id>/add_expense/', views.add_group_expense, name='add_group_expense'),
     path('group/<int:group_id>/save_expense/', views.save_group_split_expense, name='save_group_split_expense'),
+    path('delete_group_expense/<int:expense_id>/', views.delete_group_expense, name='delete_group_expense'),
 
     #Settle Up Balances
     path('record_payment/<int:friend_id>/', views.record_payment, name='record_payment'),

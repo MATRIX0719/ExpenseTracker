@@ -1,128 +1,205 @@
 {% extends 'tracker/base.html' %}
+{% load static %}
 {% block title %}Personal Dashboard{% endblock %}
 
 {% block content %}
-<div class="card shadow p-4 mt-4 text-center">
+<link rel="stylesheet" href="{% static 'tracker/css/custom.css' %}">
+<!-- Assuming Font Awesome is loaded in base.html -->
 
-<div class="d-grip gap-2 d-md-block">
-    <a href="{% url 'add_expense' %}" class="btn btn-primary"> + Add New Expense</a><br><br>
+<div class="container py-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0 fw-light">Personal Dashboard</h2>
+        <a href="{% url 'add_expense' %}" class="btn btn-primary shadow-sm">
+            <i class="fas fa-plus me-1"></i> Add New Expense
+        </a>
+    </div>
 
-</div>
- 
-    <!-- Search & Filter Form -->
-    <form method="get" class="row g-3 mb-3">
-        <div class="col-md-6">
-            <input type="text" name="search" value="{{ search_query }}" class="form-control" placeholder="Search by title">
+    <!-- Filter Section (Collapsible) -->
+    <button class="btn btn-outline-secondary btn-sm mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+        <i class="fas fa-filter me-1"></i> Show Filters
+    </button>
+    <div class="collapse mb-4" id="filterCollapse">
+        <div class="card card-body bg-light border-0">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-5 col-lg-6">
+                    <label for="search" class="form-label">Search</label>
+                    <input type="text" id="search" name="search" value="{{ search_query }}" class="form-control" placeholder="Search by title...">
+                </div>
+                <div class="col-md-3 col-lg-2">
+                    <label for="category" class="form-label">Category</label>
+                    <select name="category" id="category" class="form-select">
+                        <option value="">All</option>
+                        <option value="Food" {% if category_filter == "Food" %}selected{% endif %}>Food</option>
+                        <option value="Transport" {% if category_filter == "Transport" %}selected{% endif %}>Transport</option>
+                        <option value="Shopping" {% if category_filter == "Shopping" %}selected{% endif %}>Shopping</option>
+                    </select>
+                </div>
+                <div class="col-md-2 col-lg-2">
+                    <label for="sort_by" class="form-label">Sort By</label>
+                    <select name="sort_by" id="sort_by" class="form-select">
+                        <option value="">Default</option>
+                        <option value="amount_asc" {% if sort_by == "amount_asc" %}selected{% endif %}>Amount ↑</option>
+                        <option value="amount_desc" {% if sort_by == "amount_desc" %}selected{% endif %}>Amount ↓</option>
+                    </select>
+                </div>
+                <div class="col-md-2 col-lg-2 d-grid">
+                    <button type="submit" class="btn btn-secondary">Filter</button>
+                </div>
+            </form>
         </div>
-        <div class="col-md-4">
-            <select name="category" class="form-select">
-                <option value="">All Categories</option>
-                <option value="Food" {% if category_filter == "Food" %}selected{% endif %}>Food</option>
-                <option value="Transport" {% if category_filter == "Transport" %}selected{% endif %}>Transport</option>
-                <option value="Shopping" {% if category_filter == "Shopping" %}selected{% endif %}>Shopping</option>
-            </select>
-        </div>
+    </div>
 
-        <div class="col-md-3">
-            <select name="sort_by" class="form-select">
-                <option value="">Sort By</option>
-                <option value="amount_asc" {% if sort_by == "amount_asc" %}selected{% endif %}>Amount ↑</option>
-                <option value="amount_desc" {% if sort_by == "amount_desc" %}selected{% endif %}>Amount ↓</option>
-            </select>
-        </div>
-
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-secondary w-100">Filter</button>
-        </div>
-    </form>
-
-    <h4>Your Expenses</h4>
-    <table class="table table-bordered table-hover mt-3">
-        <thead class="table-dark">
-            <tr>
-                <th>#</th>
-                <th>Title</th>
-                <th>Amount (₹)</th>
-                <th>Category</th>
-                <th>Date</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if expenses %}
-                {% for expense in expenses %}
-                    <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ expense.title }}</td>
-                        <td>{{ expense.amount }}</td>
-                        <td>{{ expense.category }}</td>
-                        <td>{{ expense.date }}</td>
-                        <td>
-                            <!-- Update & Delete (we will implement soon) -->
-                            <a href="{% url 'edit_expense' expense.id %}" class="btn btn-sm btn-primary">Edit</a>
-                            <a href="{% url 'delete_expense' expense.id %}" class="btn btn-sm btn-danger">Delete</a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="6" class="text-center">No expenses found. Add one!</td>
-                </tr>
-            {% endif %}
-        </tbody>
-    </table>
-
-    <!-- Totals / Stats Section -->
-    <div class="row mb-4 text-center">
-        <div class="col-md-3 mb-2">
-            <div class="card text-bg-primary p-3">
-                <h5>Total Spent</h5>
-                <h3>₹{{ total_spent }}</h3>
+    <!-- Stats Section -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3 mb-4">
+        <div class="col">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body d-flex align-items-center">
+                    <div class="me-3"><i class="fas fa-dollar-sign fa-2x text-primary"></i></div>
+                    <div>
+                        <div class="text-muted small text-uppercase">Total Spent</div>
+                        <div class="fs-4 fw-bold">₹{{ total_spent|floatformat:2 }}</div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="col-md-3 mb-2">
-            <div class="card text-bg-success p-3">
-                <h5>Monthly Total</h5>
-                <h3>₹{{ monthly_total }}</h3>
+        <div class="col">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body d-flex align-items-center">
+                    <div class="me-3"><i class="fas fa-calendar-alt fa-2x text-success"></i></div>
+                    <div>
+                        <div class="text-muted small text-uppercase">Monthly Total</div>
+                        <div class="fs-4 fw-bold">₹{{ monthly_total|floatformat:2 }}</div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="col-md-3 mb-2">
-            <div class="card text-bg-warning p-3">
-                <h5>Average Expense</h5>
-                <h3>₹{{ avg_spent|floatformat:2 }}</h3>
+        <div class="col">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body d-flex align-items-center">
+                    <div class="me-3"><i class="fas fa-balance-scale fa-2x text-warning"></i></div>
+                    <div>
+                        <div class="text-muted small text-uppercase">Average Expense</div>
+                        <div class="fs-4 fw-bold">₹{{ avg_spent|floatformat:2 }}</div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="col-md-3 mb-2">
-            <div class="card text-bg-info p-3">
-                <h5>Total Categories</h5>
-                <h3>{{ category_totals|length }}</h3>
+        <div class="col">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body d-flex align-items-center">
+                    <div class="me-3"><i class="fas fa-chart-pie fa-2x text-info"></i></div>
+                    <div>
+                        <div class="text-muted small text-uppercase">Categories</div>
+                        <div class="fs-4 fw-bold">{{ category_totals|length }}</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Category-wise Breakdown -->
-    <div class="card shadow p-3 mb-4">
-        <h4>Category-wise Breakdown</h4>
-        <table class="table table-bordered table-striped mt-2">
-            <thead class="table-dark">
-                <tr>
-                    <th>Category</th>
-                    <th>Total Spent (₹)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for cat in category_totals %}
-                    <tr>
-                        <td>{{ cat.category }}</td>
-                        <td>{{ cat.total }}</td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="2" class="text-center">No expenses yet!</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Main Content: Expenses and Categories -->
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white border-0 py-3"><h5 class="mb-0">Your Expenses</h5></div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="text-center">
+                                <tr>
+                                    <th style="width: 5%;">#</th>
+                                    <th class="text-start">Title</th>
+                                    <th>Amount (₹)</th>
+                                    <th>Category</th>
+                                    <th>Date</th>
+                                    <th style="width: 120px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if expenses_page_obj %}
+                                    {% for expense in expenses_page_obj %}
+                                        <tr class="text-center">
+                                            <td>{{ expenses_page_obj.start_index|add:forloop.counter0 }}</td>
+                                            <td class="text-start">{{ expense.title }}</td>
+                                            <td>{{ expense.amount }}</td>
+                                            <td>{{ expense.category }}</td>
+                                            <td>{{ expense.date|date:"d M, Y" }}</td>
+                                            <td>
+                                                <a href="{% url 'edit_expense' expense.id %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
+                                                <a href="{% url 'delete_expense' expense.id %}" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash-alt"></i></a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5">No expenses found. Add one!</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-0 py-3">
+                    {# --- PAGINATION CONTROLS --- #}
+                    <nav aria-label="Expenses navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if expenses_page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1&search={{ search_query }}&category={{ category_filter }}&sort_by={{ sort_by }}">&laquo; First</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ expenses_page_obj.previous_page_number }}&search={{ search_query }}&category={{ category_filter }}&sort_by={{ sort_by }}">Previous</a>
+                                </li>
+                            {% endif %}
+                
+                            <li class="page-item disabled">
+                                <span class="page-link">
+                                    Page {{ expenses_page_obj.number }} of {{ expenses_page_obj.paginator.num_pages }}
+                                </span>
+                            </li>
+                
+                            {% if expenses_page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ expenses_page_obj.next_page_number }}&search={{ search_query }}&category={{ category_filter }}&sort_by={{ sort_by }}">Next</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ expenses_page_obj.paginator.num_pages }}&search={{ search_query }}&category={{ category_filter }}&sort_by={{ sort_by }}">Last &raquo;</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {# --- END PAGINATION CONTROLS --- #}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white border-0 py-3"><h5 class="mb-0">Category Breakdown</h5></div>
+                <div class="card-body">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th class="text-end">Total (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cat in category_totals %}
+                                <tr>
+                                    <td>{{ cat.category }}</td>
+                                    <td class="text-end">{{ cat.total|floatformat:2 }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center py-4">No expenses yet!</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-{% endblock %}  
+{% endblock %}

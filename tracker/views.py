@@ -7,6 +7,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 import random
 from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST
 from datetime import datetime,date
 from django.db.models import Sum, Avg, Q
 from django.urls import reverse
@@ -14,6 +15,8 @@ from django.db import transaction
 from decimal import Decimal
 from django.core.paginator import Paginator
 from django.utils import timezone
+from django.contrib.auth.decorators import login_required
+
 # Create your views here.
 
 def index(request):
@@ -45,18 +48,29 @@ def register(request):
             otp_code = generate_otp()
             
             #Now, before we make another request to server and lose our data stored in the python variables, lets store them in session
-            request.session['username'] = name
-            request.session['email'] = email
-            request.session['password'] = password               #Not safe, we should hash it first and then store it
-            request.session['generated_otp'] = otp_code
+            #Storing the session data under temporary keys
+            request.session['temp_reg_name'] = name
+            request.session['temp_reg_email'] = email
+            request.session['temp_reg_password'] = password               #Not safe, we should hash it first and then store it
+            request.session['temp_reg_otp'] = otp_code
             
-            send_mail(
-                subject='Your OTP Code',
-                message=f'Hello {name}, your OTP is {otp_code}.',
-                from_email=settings.EMAIL_HOST_USER,
-                recipient_list=[email],
-                fail_silently=False,
-            )
+            try:
+                send_mail(
+                    subject='Your OTP Code',
+                    message=f'Hello {name}, your OTP is {otp_code}.',
+                    from_email=settings.EMAIL_HOST_USER,
+                    recipient_list=[email],
+                    fail_silently=False,
+                )
+                messages.info(request,f"An OTP has been sent to {email}.")
+            except Exception as e:
+                messages.error(request, f"Failed to send OTP email: {e}")
+                #Clear the temporary session data
+                request.session.pop('temp_reg_name', None)
+                request.session.pop('temp_reg_email', None)
+                request.session.pop('temp_reg_password', None)
+                request.session.pop('temp_reg_otp', None)
+                return redirect('register')
 
             return redirect('otp_page')
     return render(request, 'tracker/register.html')
@@ -65,22 +79,29 @@ def register(request):
 def otp_page(request):
     if request.method == "POST":
         entered_otp = request.POST.get('user_otp')                   #Retrieving the OTP entered by user
-        generated_otp = request.session.get('generated_otp')         #Retrieving the OTP stored in session
+        generated_otp = request.session.get('temp_reg_otp')         #Retrieving the OTP stored in session
 
         #Validating the OTP
         if str(entered_otp) == str(generated_otp):
             #Creating a new user in the database
             user = UserRegistration(
-                name = request.session.get('username'),
-                email = request.session.get('email'),
-                password = request.session.get('password'),
+                name = request.session.get('temp_reg_name'),
+                email = request.session.get('temp_reg_email'),
+                password = request.session.get('temp_reg_password'),
             )
             user.save()
 
-            #Removing OTP from session data
-            request.session.pop('generated_otp', None)
+            #Setting final session keys
             #Storing user id in session so after registration, login can be bypassed and we have the user_id on the server side.
             request.session['user_id'] = user.id
+            request.session['username'] = user.name
+
+            #Removing temp session data
+            del request.session['temp_reg_name']
+            del request.session['temp_reg_email']
+            del request.session['temp_reg_password']
+            del request.session['temp_reg_otp']
+            
             messages.success(request, "Registration Successful! You can now log in.")
             return redirect('login')
 
@@ -181,8 +202,14 @@ def personal_dashboard(request):
     #Category-wise totals
     category_totals = expenses.values('category').annotate(total=Sum('amount')).order_by('-total')
 
+    # --- ADD PAGINATION ---
+    paginator = Paginator(expenses, 3) # Show 7 expenses per page
+    page_number = request.GET.get('page')
+    expenses_page_obj = paginator.get_page(page_number)
+    # --- END PAGINATION ---
+
     context = {
-        'expenses': expenses,
+        'expenses_page_obj': expenses_page_obj,
         'username': request.session.get('username'),
         'total_spent': total_spent,
         'avg_spent': avg_spent,
@@ -196,15 +223,15 @@ def personal_dashboard(request):
     #Passing them to the template
     return render(request, 'tracker/personal.html', context)
 
-#Friends Dashboard
+# @login_required
 def friends_dashboard(request):
     if 'username' not in request.session:
         messages.error(request, "Please log in to access this page.")
         return redirect('login')
-    else:
-        #Fetch user_id from session and list his friends
-        user_id = request.session.get('user_id')
-        friends = Friend.objects.filter(user_id=user_id)
+
+    # Fetch user_id from session and list his friends
+    user_id = request.session.get('user_id')
+    friends = Friend.objects.filter(user_id=user_id)
     return render(request, 'tracker/friends.html', {'friends': friends})
 
 def friend_details(request, friend_id):
@@ -434,6 +461,48 @@ def save_split_expense(request, friend_id):
     
     # Handle non-POST requests
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
+
+@require_POST
+def delete_friend_expense(request, expense_id):
+    user_id = request.session.get('user_id')
+    if not user_id:
+        messages.error(request, "Please log in.")
+        return redirect('login')
+
+    try:
+        # Get the expense object
+        expense = get_object_or_404(FriendExpense, pk=expense_id)
+
+        # --- Security Check: Ensure the logged-in user owns this expense record ---
+        # We assume the 'user' field on FriendExpense is the creator/owner
+        if expense.user.id != user_id:
+            messages.error(request, "You do not have permission to delete this expense.")
+            # Redirect back to the friend detail page if possible, otherwise dashboard
+            if hasattr(expense, 'friend_user') and expense.friend_user:
+                 return redirect('friend_details', friend_id=expense.friend_user.id)
+            else:
+                 return redirect('personal_dashboard') # Fallback redirect
+
+        # Store the friend ID before deleting for the redirect
+        friend_id_for_redirect = expense.friend_user.id
+
+        # Delete the expense
+        expense.delete()
+        messages.success(request, "Expense deleted successfully.")
+
+    except FriendExpense.DoesNotExist:
+        messages.error(request, "Expense not found.")
+        # Need a sensible redirect if the expense doesn't exist, maybe dashboard?
+        return redirect('personal_dashboard') 
+    except Exception as e:
+        messages.error(request, f"An error occurred: {e}")
+        # Redirect back to friend details page even on error if possible
+        # Check if friend_id_for_redirect was set or try getting it again if needed
+        # For simplicity, redirecting to dashboard as fallback.
+        return redirect('friend_details') 
+
+    # Redirect back to the friend details page after successful deletion
+    return redirect('friend_details', friend_id=friend_id_for_redirect)
 
 #Groups Dashboard
 def groups_dashboard(request):
@@ -695,6 +764,44 @@ def add_group_expense(request, group_id):
     context = {'group': group}
     return render(request, 'tracker/add_group_expense.html', context)
 
+@require_POST
+def delete_group_expense(request, expense_id):
+    user_id = request.session.get('user_id')
+    if not user_id:
+        messages.error(request, "Please log in.")
+        return redirect('login')
+
+    try:
+        # Get the expense object and its related group
+        expense = get_object_or_404(GroupExpense.objects.select_related('group'), pk=expense_id)
+        
+        # Store the group ID for redirection before potential errors/deletion
+        group_id_for_redirect = expense.group.id
+
+        # --- Security Check: Ensure the logged-in user is a member of the group ---
+        if not expense.group.members.filter(id=user_id).exists():
+            messages.error(request, "You do not have permission to delete expenses in this group.")
+            return redirect('group_details', group_id=group_id_for_redirect) # Redirect back to group page
+
+        # Delete the expense (Splits will be deleted automatically due to CASCADE)
+        expense.delete()
+        messages.success(request, "Group expense deleted successfully.")
+
+    except GroupExpense.DoesNotExist:
+        messages.error(request, "Expense not found.")
+        # Redirect to groups dashboard if expense doesn't exist
+        return redirect('groups_dashboard') 
+    except Exception as e:
+        messages.error(request, f"An error occurred: {e}")
+        # Redirect back to group details page even on error if possible
+        if 'group_id_for_redirect' in locals():
+             return redirect('group_details', group_id=group_id_for_redirect)
+        else:
+             return redirect('groups_dashboard') # Fallback redirect
+
+    # Redirect back to the group details page after successful deletion
+    return redirect('group_details', group_id=group_id_for_redirect)
+
 #New and most complex view to save group expenses
 def save_group_split_expense(request, group_id):
     if request.method == 'POST':
@@ -875,8 +982,14 @@ def activity_dashboard(request):
     reverse=True
 )
 
+    # --- ADD PAGINATION ---
+    paginator = Paginator(sorted_activities, 10) # Show 10 activities per page
+    page_number = request.GET.get('page')
+    activities_page_obj = paginator.get_page(page_number)
+    # --- END PAGINATION ---
+
     context = {
-        'activities': sorted_activities,
+        'activities_page_obj': activities_page_obj,
         'current_user': user # Pass user for template logic
     }
     return render(request, 'tracker/activity.html', context)

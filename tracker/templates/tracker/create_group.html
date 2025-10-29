@@ -1,30 +1,44 @@
 {% extends 'tracker/base.html' %}
 {% load static %}
-{% block content %}
+{% block title %}Create Group{% endblock %}
 
- <!-- Create Group Form -->
-    <div class="card mt-4 shadow-sm">
-        <div class="card-body">
-            <h4>Create a New Group</h4>
-            <form method="POST">
-                {% csrf_token %}
-                <div class="mb-3">
-                    <label for="name" class="form-label">Group Name</label>
-                    <input type="text" name="name" id="name" class="form-control" required>
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+                    
+                    <h2 class="text-center mb-4 fw-semibold">Create a New Group</h2> 
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Group Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required> 
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="" selected disabled>-- Select Category --</option>
+                                <option value="Trip">Trip</option>
+                                <option value="Home">Home</option>
+                                <option value="Event">Event</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mt-4 d-grid gap-2 d-md-flex justify-content-md-end"> 
+                            <a href="{% url 'groups_dashboard' %}" class="btn btn-outline-secondary me-md-2">Cancel</a> 
+                            <button type="submit" class="btn btn-primary">Create</button> 
+                        </div>
+                    </form>
+
                 </div>
-                <div class="mb-3">
-                    <label for="category" class="form-label">Category</label>
-                    <select name="category" id="category" class="form-select" required>
-                        <option value="">-- Select Category --</option>
-                        <option value="Trip">Trip</option>
-                        <option value="Home">Home</option>
-                        <option value="Couple">Couple</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-primary">Create</button>
-            </form>
+            </div>
         </div>
     </div>
-
+</div>
 {% endblock %}

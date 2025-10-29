@@ -1,28 +1,48 @@
 {% extends 'tracker/base.html' %}
-{% block content %}
-<div class="container mt-4">
-    <h2>Add Members to "{{ group.name }}"</h2>
-    <p>Select friends to add to the group.</p>
+{% load static %}
+{% block title %}Add Members{% endblock %}
 
-    {% if available_friends %}
-    <form action="{% url 'add_members' group_id=group.id %}" method="POST">
-        {% csrf_token %}
-        <div class="list-group mb-3">
-            {% for friend in available_friends %}
-            <label class="list-group-item">
-                <input class="form-check-input me-1" type="checkbox" name="members" value="{{ friend.id }}">
-                {{ friend.name }}
-            </label>
-            {% endfor %}
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+                    
+                    <h2 class="text-center mb-4 fw-semibold">Add Members to "{{ group.name }}"</h2> 
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label d-block mb-2">Select friends to add:</label>
+                            {% if available_friends %}
+                                <div class="list-group list-group-flush border rounded" style="max-height: 200px; overflow-y: auto;">
+                                    {% for friend in available_friends %}
+                                    <label class="list-group-item list-group-item-action">
+                                        <input class="form-check-input me-2" type="checkbox" name="members" value="{{ friend.id }}">
+                                        {{ friend.name }} 
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                <small class="form-text text-muted">Select one or more friends.</small>
+                            {% else %}
+                                <p class="text-muted border rounded p-3 bg-light">You have no friends available to add, or all your friends are already in this group.</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mt-4 d-grid gap-2 d-md-flex justify-content-md-end"> 
+                            <button type="submit" class="btn btn-primary">Add Selected Members</button> 
+                            <a href="{% url 'group_details' group_id=group.id %}" class="btn btn-outline-secondary me-md-2">Cancel</a> 
+                            {% if available_friends %} 
+                            
+                            {% endif %}
+                        </div>
+                    </form>
+
+                </div>
+            </div>
         </div>
-        <button type="submit" class="btn btn-primary">Add Selected Members</button>
-        <a href="{% url 'group_details' group_id=group.id %}" class="btn btn-secondary">Cancel</a>
-    </form>
-    {% else %}
-    <div class="alert alert-info">
-        All of your friends are already in this group.
     </div>
-    <a href="{% url 'group_details' group_id=group.id %}" class="btn btn-secondary">Back to Group</a>
-    {% endif %}
 </div>
 {% endblock %}

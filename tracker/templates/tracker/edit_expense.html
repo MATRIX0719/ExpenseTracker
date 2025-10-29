@@ -1,30 +1,50 @@
 {% extends 'tracker/base.html' %}
-
+{% load static %}
 {% block title %}Edit Expense{% endblock %}
 
 {% block content %}
-<div class="card shadow p-4 mt-4">
-    <h3>Edit Expense</h3>
-    <form method="POST">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label class="form-label">Title</label>
-            <input type="text" name="title" value="{{ expense.title }}" class="form-control" required>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 p-md-5">
+                    <h2 class="text-center mb-4">Edit Expense</h2>
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="title" name="title" value="{{ expense.title }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Amount (₹)</label>
+                            <input type="number" step="0.01" class="form-control" id="amount" name="amount" value="{{ expense.amount|stringformat:'.2f' }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="Food" {% if expense.category == 'Food' %}selected{% endif %}>Food</option>
+                                <option value="Transport" {% if expense.category == 'Transport' %}selected{% endif %}>Transport</option>
+                                <option value="Shopping" {% if expense.category == 'Shopping' %}selected{% endif %}>Shopping</option>
+                                <!-- Add other categories as needed -->
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="date" name="date" value="{{ expense.date|date:'Y-m-d' }}" required>
+                        </div>
+
+                        <div class="mt-4 d-flex justify-content-end align-items-center">
+                            <button type="submit" class="btn btn-primary">Update</button>
+                            <a href="{% url 'personal_dashboard' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Amount</label>
-            <input type="number" name="amount" value="{{ expense.amount }}" class="form-control" required>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Category</label>
-            <input type="text" name="category" value="{{ expense.category }}" class="form-control" required>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Date</label>
-            <input type="date" name="date" value="{{ expense.date|date:'Y-m-d' }}" class="form-control" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Update</button>
-        <a href="{% url 'landing_page' %}" class="btn btn-secondary">Cancel</a>
-    </form>
+    </div>
 </div>
 {% endblock %}

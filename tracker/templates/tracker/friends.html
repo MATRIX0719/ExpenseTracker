@@ -1,48 +1,57 @@
 {% extends 'tracker/base.html' %}
-
+{% load static %}
 {% block title %}Friends Dashboard{% endblock %}
 
 {% block content %}
-<h2>Friends List</h2>
-
-<table class="table table-bordered table-hover mt-3">
-    <thead class="table-dark">
-        <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Remove</th>
-            <th>Details</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% if friends %}
-            {% for friend in friends %}
-                <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ friend.friend_user.name }}</td>
-                    <td>{{ friend.friend_user.email }}</td>
-                    <td>
-                        <form action="{% url 'remove_friend' friend.friend_user.id %}" method="post" style="display:inline;">
-                        {% csrf_token %}
-                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
-                        </form>
-                    </td>
-                    <td>
-                        <a href="{% url 'friend_details' friend.friend_user.id %}" class="btn btn-info btn-sm">Details/Expenses</a>
-                    </td>
-                </tr>
-            {% endfor %}
-        {% else %}
-            <tr>
-                <td colspan="3" class="text-center">No friends found.</td>
-            </tr>
-        {% endif %}
-    </tbody>
-</table>
-
-
-    <div class="d-grip gap-2 p-4 mt-4">
-        <a href="{% url 'add_friend' %}" class="btn btn-outline-primary">Add Friend</a>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0 fw-light">Friends List</h2>
+        <a href="{% url 'add_friend' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-user-plus me-1"></i> Add Friend
+        </a>
     </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="text-center">
+                        <tr>
+                            <th style="width: 5%;">#</th>
+                            <th class="text-start">Name</th>
+                            <th class="text-start">Email</th>
+                            <th style="width: 20%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if friends %}
+                            {% for friend in friends %}
+                                <tr class="text-center">
+                                    <td>{{ forloop.counter }}</td>
+                                    <td class="text-start">{{ friend.friend_user.name }}</td>
+                                    <td class="text-start">{{ friend.friend_user.email }}</td>
+                                    <td>
+                                        <a href="{% url 'friend_details' friend.friend_user.id %}" class="btn btn-sm btn-outline-secondary" title="Details">
+                                            Expenses
+                                        </a>
+                                        <form action="{% url 'remove_friend' friend.friend_user.id %}" method="post" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove Friend">
+                                                Remove
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-5">No friends found. Add one!</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

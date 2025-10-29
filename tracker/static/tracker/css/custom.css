@@ -1,0 +1,320 @@
+/* ==========================================================================
+   Minty Fresh Palette & Bootstrap Variable Overrides
+   ========================================================================== */
+:root {
+    --bs-primary: #1ABC9C !important; /* Minty Fresh Green */
+    --bs-primary-rgb: 26, 188, 156 !important;
+    --bs-primary-darker: #16a085; /* Darker green for hover/active */
+
+    --bs-danger: #E74C3C; /* Minty Red */
+    --bs-danger-rgb: 231, 76, 60;
+    --bs-danger-darker: #c0392b; /* Darker red for hover/active */
+
+    --bs-success: #1ABC9C !important; /* Use Primary Green for Success */
+    --bs-success-rgb: 26, 188, 156 !important;
+    --bs-info: #3498db; /* Example Blue for Info */
+    --bs-warning: #f39c12; /* Example Yellow for Warning */
+
+    --bs-body-color: #2C3E50; /* Dark Blue/Gray Text */
+    --bs-body-bg: #F8F9FA;    /* Light Gray Background */
+    --bs-light: #F8F9FA;      /* Consistent light color */
+    --bs-light-rgb: 248, 249, 250;
+    --bs-dark: #2C3E50;       /* Use body color for dark elements */
+    --bs-dark-rgb: 44, 62, 80;
+
+    --bs-white: #FFFFFF;
+    --bs-white-rgb: 255, 255, 255;
+
+    --bs-card-border-color: transparent; /* Remove card borders by default */
+    --bs-card-bg: #FFFFFF;
+
+    --bs-secondary-text-emphasis: #555; /* Muted text slightly darker */
+    --bs-link-color: var(--bs-primary);
+    --bs-link-hover-color: var(--bs-primary-darker);
+}
+
+/* ==========================================================================
+   Global Styles
+   ========================================================================== */
+body {
+    color: var(--bs-body-color);
+    background-color: var(--bs-body-bg);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--bs-body-color);
+    font-weight: 600; /* Base semi-bold */
+}
+
+a {
+    color: var(--bs-link-color);
+    text-decoration: none; /* Remove underlines globally */
+}
+a:hover {
+    color: var(--bs-link-hover-color);
+    text-decoration: none; /* Keep underlines off on hover by default */
+}
+
+/* ==========================================================================
+   Button Overrides
+   ========================================================================== */
+.btn {
+    /* Ensure white text contrasts well on colored buttons */
+    --bs-btn-color: var(--bs-white);
+    --bs-btn-hover-color: var(--bs-white);
+    --bs-btn-active-color: var(--bs-white);
+    --bs-btn-font-weight: 600; /* Bolder button text */
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--bs-primary);
+    --bs-btn-border-color: var(--bs-primary);
+    --bs-btn-hover-bg: var(--bs-primary-darker);
+    --bs-btn-hover-border-color: var(--bs-primary-darker);
+    --bs-btn-color: #fff; /* Explicitly set white text */
+    --bs-btn-hover-color: #fff;
+}
+
+.btn-secondary {
+    --bs-btn-bg: var(--bs-secondary);
+    --bs-btn-border-color: var(--bs-secondary);
+    --bs-btn-color: var(--bs-body-color); /* FIX: Use Dark Text */
+    --bs-btn-hover-bg: var(--bs-secondary-darker); /* Darker Gray Hover BG */
+    --bs-btn-hover-border-color: var(--bs-secondary-darker);
+    --bs-btn-hover-color: var(--bs-body-color); /* FIX: Use Dark Text on Hover */
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: var(--bs-body-color, #2C3E50);
+    --bs-btn-border-color: var(--bs-secondary, #BDC3C7);
+    --bs-btn-hover-color: var(--bs-body-color, #2C3E50);
+    --bs-btn-hover-bg: #e9ecef;
+    --bs-btn-hover-border-color: var(--bs-secondary, #BDC3C7);
+    color: var(--bs-body-color, #2C3E50) !important; /* Force dark text */
+}
+.btn-outline-secondary:hover {
+    text-decoration: none !important; /* Force no underline */
+}
+
+/* --- General Primary Button Active State --- */
+.btn-primary:active,
+.btn-primary.active {
+    --bs-btn-active-bg: #16a085 !important;
+    --bs-btn-active-border-color: #16a085 !important;
+    --bs-btn-active-color: #FFFFFF !important;
+    --bs-btn-active-shadow: none !important;
+    background-color: #16a085 !important;
+    border-color: #16a085 !important;
+    color: #FFFFFF !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.btn-danger {
+    --bs-btn-bg: var(--bs-danger);
+    --bs-btn-border-color: var(--bs-danger);
+    --bs-btn-hover-bg: var(--bs-danger-darker);
+    --bs-btn-hover-border-color: var(--bs-danger-darker);
+}
+
+.btn-outline-danger {
+    --bs-btn-color: var(--bs-danger);
+    --bs-btn-border-color: var(--bs-danger);
+    --bs-btn-hover-bg: var(--bs-danger);
+    --bs-btn-hover-border-color: var(--bs-danger);
+    --bs-btn-hover-color: #fff;
+}
+
+/* --- Navbar Styles --- */
+.navbar #navbarNav .navbar-nav .nav-link {
+    color: #2C3E50;
+    font-size: 1.05rem;
+    font-weight: 500;
+    padding-left: 0.8rem;
+    padding-right: 0.8rem;
+}
+.navbar #navbarNav .navbar-nav .nav-link:hover {
+     color: #16a085;
+}
+.navbar #navbarNav .navbar-nav .nav-link.active {
+    color: var(--bs-primary, #1ABC9C) !important;
+    font-weight: 600;
+}
+.navbar #logout-button.btn-outline-secondary {
+    --bs-btn-color: #2C3E50;
+    --bs-btn-border-color: #BDC3C7;
+    --bs-btn-bg: transparent;
+    color: #2C3E50 !important;
+    border-color: #BDC3C7 !important;
+}
+.navbar #logout-button.btn-outline-secondary:hover,
+.navbar #logout-button.btn-outline-secondary:focus {
+    --bs-btn-hover-bg: #E74C3C;
+    --bs-btn-hover-border-color: #E74C3C;
+    --bs-btn-hover-color: #FFFFFF;
+    background-color: #E74C3C !important;
+    color: #FFFFFF !important;
+    border-color: #E74C3C !important;
+    box-shadow: none !important;
+}
+
+/* ==========================================================================
+   Specific Page Styles
+   ========================================================================== */
+
+/* Remove base container margin on auth pages */
+body.auth-page > .container.mt-4 {
+    margin-top: 0 !important;
+}
+
+/* Card link styling (General) */
+.card-body a {
+    color: var(--bs-primary);
+}
+.card-body a:hover {
+    text-decoration: underline;
+}
+
+/* Form Control Focus Glow Override */
+.form-control {
+    border-color: #ced4da;
+}
+.form-control:focus {
+    --bs-focus-ring-color: rgba(var(--bs-primary-rgb), 0.25);
+    border-color: #80bd9e;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+/* Toast Message Styling */
+.toast-container { z-index: 1100; }
+.toast.text-bg-success { background-color: var(--bs-success) !important; color: var(--bs-white) !important; }
+.toast.text-bg-danger { background-color: var(--bs-danger) !important; color: var(--bs-white) !important; }
+.toast.text-bg-warning { background-color: var(--bs-warning, #f39c12) !important; color: var(--bs-dark) !important; }
+.toast.text-bg-warning .btn-close { filter: invert(1) grayscale(100%) brightness(0%); }
+.toast.text-bg-info { background-color: var(--bs-info, #3498db) !important; color: var(--bs-white) !important; }
+.toast.text-bg-secondary { background-color: var(--bs-secondary, #BDC3C7) !important; color: var(--bs-dark) !important; }
+
+/* Navigation Card Styling */
+a.nav-card {
+    text-decoration: none;
+    color: var(--bs-body-color);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    display: block;
+}
+a.nav-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+    color: var(--bs-primary);
+}
+
+/* --- Pagination Styling (Increased Specificity & Force) --- */
+/* Target pagination links within common containers forcefully */
+.card .pagination .page-link,
+.container .pagination .page-link {
+    color: var(--bs-primary) !important;       /* Force green link color */
+    border-color: #dee2e6 !important;
+    background-color: var(--bs-white) !important; /* Ensure white background */
+    box-shadow: none !important;
+}
+
+/* Hover state for links */
+.card .pagination .page-link:hover,
+.container .pagination .page-link:hover {
+    color: var(--bs-primary-darker) !important;
+    background-color: #e9ecef !important;    /* Light gray background */
+    border-color: #dee2e6 !important;
+    z-index: 2; /* Ensure hover is visually above others */
+}
+
+/* Style the ACTIVE page item forcefully */
+.card .pagination .page-item.active .page-link,
+.container .pagination .page-item.active .page-link {
+    background-color: var(--bs-primary) !important;   /* Force green background */
+    border-color: var(--bs-primary) !important;       /* Force green border */
+    color: var(--bs-white) !important;            /* Force white text */
+    z-index: 3 !important; /* Ensure active is highest */
+}
+ /* Ensure no conflicting hover style on active item */
+.card .pagination .page-item.active .page-link:hover,
+.container .pagination .page-item.active .page-link:hover {
+    background-color: var(--bs-primary) !important;
+    border-color: var(--bs-primary) !important;
+    color: var(--bs-white) !important;
+}
+
+/* Style disabled items */
+.card .pagination .page-item.disabled .page-link,
+.container .pagination .page-item.disabled .page-link {
+    color: #6c757d !important;                      /* Muted color */
+    background-color: var(--bs-white) !important; /* White background */
+    border-color: #dee2e6 !important;
+}
+
+/* Activity Feed Hover */
+.list-group-item-action:hover,
+.list-group-item-action:focus {
+    background-color: #f8f9fa; /* bg-light */
+    color: var(--bs-body-color);
+    cursor: default; /* Keep default cursor as items aren't links yet */
+}
+
+/* Stats Section */
+.stat-value {
+    color: var(--bs-primary);
+}
+
+/* Table Styling */
+.table thead th {
+    color: #6c757d;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+}
+.table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.025);
+}
+
+/* --- Pagination Styling (Maximum Specificity & Force) --- */
+/* Target pagination links within common containers forcefully */
+.card .pagination .page-link, 
+.container .pagination .page-link {
+    color: var(--bs-primary) !important;       /* Force green link color */
+    border-color: #dee2e6 !important; 
+    background-color: var(--bs-white) !important; /* Ensure white background */
+    box-shadow: none !important; 
+}
+/* Hover state for links */
+.card .pagination .page-link:hover,
+.container .pagination .page-link:hover {
+    color: var(--bs-primary-darker) !important;
+    background-color: #e9ecef !important;    /* Light gray background */
+    border-color: #dee2e6 !important;
+}
+/* Style the ACTIVE page item forcefully */
+.card .pagination .page-item.active .page-link,
+.container .pagination .page-item.active .page-link {
+    background-color: var(--bs-primary) !important;   /* Force green background */
+    border-color: var(--bs-primary) !important;       /* Force green border */
+    color: var(--bs-white) !important;            /* Force white text */
+    z-index: 3 !important; 
+}
+ /* Ensure no conflicting hover style on active item */
+.card .pagination .page-item.active .page-link:hover,
+.container .pagination .page-item.active .page-link:hover {
+    background-color: var(--bs-primary) !important; 
+    border-color: var(--bs-primary) !important;     
+    color: var(--bs-white) !important;             
+}
+/* Style disabled items */
+.card .pagination .page-item.disabled .page-link,
+.container .pagination .page-item.disabled .page-link {
+    color: #6c757d !important;                      /* Muted color */
+    background-color: var(--bs-white) !important; /* White background */
+    border-color: #dee2e6 !important;
+}
+
+/* Ensure Font Awesome loads if icons are missing */
+/* Add Font Awesome CDN link in base.html <head> if needed */
+

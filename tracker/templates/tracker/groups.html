@@ -6,55 +6,50 @@
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>My Groups</h2>
-
-        <form method="GET" class="d-flex align-items-center">
-        <label for="filter" class="me-2 fw-bold">Filter:</label>
-        <select name="filter" id="filter" class="form-select" onchange="this.form.submit()">
-            <option value="None" {% if filter_option == 'None' %}selected{% endif %}>None</option>
-            <option value="outstanding" {% if filter_option == 'outstanding' %}selected{% endif %}>Groups with outstanding balances</option>
-            <option value="owe" {% if filter_option == 'owe' %}selected{% endif %}>Group balances you owe</option>
-            <option value="owed" {% if filter_option == 'owed' %}selected{% endif %}>Group balances you are owed</option>
-        </select>
-    </form>
-</div>
-
-    <!-- Overall summary -->
-    <p class="fw-bold text-end">Overall, you owe: ₹{{ overall_owe|floatformat:2 }}</p>
+        <h2 class="mb-0 fw-light">My Groups</h2>
+        <a href="{% url 'create_group' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1"></i> Create Group
+        </a>
+    </div>
 
     <!-- Groups Table -->
-    <table class="table table-bordered">
-        <thead class="table-dark">
-            <tr>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Remove</th>
-                <th>Expenses</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for group in groups %}
-                <tr>
-                    <td>{{ group.name }}</td>
-                    <td>{{ group.category }}</td>
-                    <td>
-                        <form action="{% url 'remove_from_group' group_id=group.id %}" method="POST" onsubmit="return confirm('Are you sure you want to leave this group?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
-                        </form>
-                    </td>
-                    <td><a href="{% url 'group_details' group_id=group.id %}" class="btn btn-info btn-sm">Details</a></td>
-                </tr>
-            {% empty %}
-                <tr><td colspan="4" class="text-center">No groups yet.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-
-<div class="d-grid gap-2 p-4 mt-4">
-    <a href="{% url 'create_group' %}" class="btn btn-outline-primary">Create Group</a>
-</div>
-
+     <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="text-center">
+                        <tr>
+                            <th width="5%">#</th>
+                            <th width="13%" class="text-start">Name</th>
+                            <th width="15%"  class="text-start">Category</th>
+                            <th class="text-start">Members</th>
+                            <th width="20%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for group in groups %}
+                            <tr class="text-center">
+                                <td class="text-center">{{ forloop.counter }}</td>
+                                <td class="text-start">{{ group.name }}</td>
+                                <td class="text-start">{{ group.category }}</td>
+                                <td class="text-start">{{ group.members.count }}</td>
+                                <td>
+                                    <a href="{% url 'group_details' group_id=group.id %}" class="btn btn-sm btn-outline-secondary" title="group_details">
+                                        Expenses
+                                    </a>
+                                    <form action="{% url 'remove_from_group' group_id=group.id %}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to leave this group?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Leave</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center">No groups yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
 {% endblock %}

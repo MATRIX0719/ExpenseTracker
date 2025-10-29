@@ -4,78 +4,128 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Activity Feed</h2>
-    <hr>
+    <div class="card shadow-sm border-0 mt-4">
+        <div class="card-body p-4">
+            <h2 class="mb-0 fw-light">Activity Feed</h2><br>
 
-    <ul class="list-group list-group-flush">
-        {% for activity in activities %}
-            <li class="list-group-item py-3">
-                <div class="d-flex w-100 justify-content-between">
-                    <h6 class="mb-1">
-                        {% if activity.type == 'friend_expense' %}
-                            {% with expense=activity.details %}
-                                {% if expense.title == "Payment" %}
-                                    {# --- Payment --- #}
-                                    {% if expense.paid_by == current_user %}
-                                        You paid <strong>{{ expense.friend_user.name }}</strong> ₹{{ expense.amount|floatformat:2 }}
+            <ul class="list-group">
+                {% for activity in activities_page_obj %}
+                    <li class="list-group-item list-group-item-action d-flex align-items-center">
+                        <div class="me-3 fs-5 text-center" style="width: 30px;">
+                            {# --- Start Icon Logic --- #}
+                            {% if activity.type == 'friend_expense' %}
+                                {% with expense=activity.details %}
+                                    {% if expense.title == "Payment" %}
+                                        <i class="fas fa-handshake text-success"></i> {# Payment #}
                                     {% else %}
-                                        <strong>{{ expense.paid_by.name }}</strong> paid you ₹{{ expense.amount|floatformat:2 }}
+                                        <i class="fas fa-receipt text-primary"></i> {# Friend Expense #}
                                     {% endif %}
-
-                                    {# **** ADD THIS BLOCK **** #}
-                                    {% if expense.group %}
-                                        <small class="text-muted"> in group "{{ expense.group.name }}"</small>
+                                {% endwith %}
+                            {% elif activity.type == 'group_expense' %}
+                                <i class="fas fa-users text-primary"></i> {# Group Expense #}
+                            {% elif activity.type == 'group_creation' %}
+                                <i class="fas fa-plus-circle text-muted"></i> {# Group Creation #}
+                            {% elif activity.type == 'personal_expense' %}
+                                <i class="fas fa-user text-secondary"></i> {# Personal Expense #}
+                            {% else %}
+                                <i class="fas fa-info-circle text-muted"></i> {# Default/Unknown #}
+                            {% endif %}
+                            {# --- End Icon Logic --- #}
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">
+                                    {# --- Start Text Logic --- #}
+                                    {% if activity.type == 'friend_expense' %}
+                                        {% with expense=activity.details %}
+                                            {% if expense.title == "Payment" %}
+                                                {# Payment #}
+                                                {% if expense.paid_by == current_user %}
+                                                    You paid <strong>{{ expense.friend_user.name }}</strong> ₹{{ expense.amount|floatformat:2 }}
+                                                {% else %}
+                                                    <strong>{{ expense.paid_by.name }}</strong> paid you ₹{{ expense.amount|floatformat:2 }}
+                                                {% endif %}
+                                                {% if expense.group %}
+                                                    <small class="text-muted"> in group "{{ expense.group.name }}"</small>
+                                                {% else %}
+                                                    <small class="text-muted"> (direct friend payment)</small>
+                                                {% endif %}
+                                            {% else %}
+                                                {# Friend Expense #}
+                                                {% if expense.user == current_user %}
+                                                    You added "<strong>{{ expense.title }}</strong>" with <strong>{{ expense.friend_user.name }}</strong> (₹{{ expense.amount|floatformat:2 }})
+                                                {% else %}
+                                                    <strong>{{ expense.user.name }}</strong> added "<strong>{{ expense.title }}</strong>" with you (₹{{ expense.amount|floatformat:2 }})
+                                                {% endif %}
+                                                {% if expense.group %}
+                                                   <small class="text-muted"> in group "{{ expense.group.name }}"</small>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endwith %}
+                                    
+                                    {% elif activity.type == 'group_expense' %}
+                                        {# Group Expense #}
+                                        {% with expense=activity.details %}
+                                            <strong>{{ expense.paid_by.name }}</strong> added "<strong>{{ expense.title }}</strong>" (₹{{ expense.amount|floatformat:2 }}) to group "<strong>{{ expense.group.name }}</strong>"
+                                        {% endwith %}
+                                    
+                                    {% elif activity.type == 'group_creation' %}
+                                        {# Group Creation #}
+                                        {% with group=activity.details %}
+                                             You created the group "<strong>{{ group.name }}</strong>"
+                                        {% endwith %}
+                                    
+                                    {% elif activity.type == 'personal_expense' %}
+                                        {# Personal Expense #}
+                                         {% with expense=activity.details %}
+                                            You added personal expense "<strong>{{ expense.title }}</strong>" (₹{{ expense.amount|floatformat:2 }})
+                                        {% endwith %}
+                                    
                                     {% else %}
-                                        <small class="text-muted"> (direct friend payment)</small> {# Or "in friends expenses" #}
+                                        Unknown activity type
                                     {% endif %}
-                                    {# **** END ADDITION **** #}
+                                    {# --- End Text Logic --- #}
+                                </h6>
+                                <small class="text-muted">{{ activity.date|date:"d M Y" }}</small> {# Show date and time #}
+                            </div>
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-center text-muted py-3">No activity yet.</li>
+                {% endfor %}
+            </ul>
 
-                                {% else %}
-                                    {# --- Friend Expense --- #}
-                                    {% if expense.user == current_user %}
-                                        You added "<strong>{{ expense.title }}</strong>" with <strong>{{ expense.friend_user.name }}</strong> (₹{{ expense.amount|floatformat:2 }})
-                                    {% else %}
-                                        {# Case where friend added expense with you (if your view logic includes this) #}
-                                        <strong>{{ expense.user.name }}</strong> added "<strong>{{ expense.title }}</strong>" with you (₹{{ expense.amount|floatformat:2 }})
-                                    {% endif %}
+            {# --- ADD PAGINATION CONTROLS --- #}
+            <nav aria-label="Activity navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if activities_page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1">&laquo; First</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ activities_page_obj.previous_page_number }}">Previous</a>
+                        </li>
+                    {% endif %}
 
-                                    {# Optionally add group context here too if FriendExpenses can be group-related #}
-                                    {% if expense.group %}
-                                    <small class="text-muted"> in group "{{ expense.group.name }}"</small>
-                                    {% endif %}
-                                {% endif %}
-                            {% endwith %}
+                    <li class="page-item disabled">
+                        <span class="page-link">
+                            Page {{ activities_page_obj.number }} of {{ activities_page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
 
-                        {% elif activity.type == 'group_expense' %}
-                            {# --- Group Expense --- #}
-                            {% with expense=activity.details %}
-                                <strong>{{ expense.paid_by.name }}</strong> added "<strong>{{ expense.title }}</strong>" (₹{{ expense.amount|floatformat:2 }}) to group "<strong>{{ expense.group.name }}</strong>"
-                            {% endwith %}
+                    {% if activities_page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ activities_page_obj.next_page_number }}">Next</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ activities_page_obj.paginator.num_pages }}">Last &raquo;</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {# --- END PAGINATION CONTROLS --- #}
 
-                        {% elif activity.type == 'group_creation' %}
-                            {# --- Group Creation --- #}
-                            {% with group=activity.details %}
-                                You created the group "<strong>{{ group.name }}</strong>"
-                                {# Add more detail? e.g., "You were added to group..." #}
-                            {% endwith %}
-
-                        {% elif activity.type == 'personal_expense' %}
-                            {# --- Personal Expense (If added) --- #}
-                             {% with expense=activity.details %}
-                                You added personal expense "<strong>{{ expense.title }}</strong>" (₹{{ expense.amount|floatformat:2 }})
-                            {% endwith %}
-                        
-                        {% else %}
-                            Unknown activity type
-                        {% endif %}
-                    </h6>
-                    <small class="text-muted">{{ activity.date|date:"d M Y" }}</small> {# Show date and time #}
-                </div>
-                </li>
-        {% empty %}
-            <li class="list-group-item text-center text-muted py-3">No activity yet.</li>
-        {% endfor %}
-    </ul>
-
+        </div>
+    </div>
     </div>
 {% endblock %}
