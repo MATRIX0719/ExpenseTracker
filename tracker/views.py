@@ -277,7 +277,6 @@ def friend_details(request, friend_id):
 def add_friend(request):
     if request.method == 'POST':
         friend_email = request.POST.get('friend_email')
-        print('Trying Friend:',friend_email)
         print(UserRegistration.objects.values_list('name','email'))
         try:
             friend_user = UserRegistration.objects.get(email=friend_email)
@@ -289,8 +288,8 @@ def add_friend(request):
             #Send invite email
             try:
                 send_mail(
-                    subject=f"{user.name} is inviting you to 'tracker'",
-                    message=f"{user.name} is inviting you to join 'tracker' to share and manage your expenses together.",
+                    subject=f"{user.name} added you as a friend on 'tracker' ",
+                    message=f"{user.name} has added you as a friend on 'tracker' to share and manage your expenses together.",
                     from_email='yashp07052004@gmail.com',
                     recipient_list=[friend_user.email],
                     fail_silently=True
