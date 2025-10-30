@@ -34,7 +34,7 @@
                                         <a href="{% url 'friend_details' friend.friend_user.id %}" class="btn btn-sm btn-outline-secondary" title="Details">
                                             Expenses
                                         </a>
-                                        <a href="{% url 'remove_friend' friend.friend_user.id %}" class="btn btn-sm btn-outline-danger" title="Remove Friend">
+                                        <a href="{% url 'remove_friend' friend.friend_user.id %}" id="remove-btn" class="btn btn-sm" style="background-color: #dc3545; color: #fff; border-color: #dc3545; text-decoration: none;" onmouseover="this.style.backgroundColor='#c82333'"onmouseout="this.style.backgroundColor='#dc3545'" title="Remove Friend">
                                             Remove
                                         </a>
                                     </td>
