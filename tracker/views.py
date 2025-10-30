@@ -223,7 +223,6 @@ def personal_dashboard(request):
     #Passing them to the template
     return render(request, 'tracker/personal.html', context)
 
-# @login_required
 def friends_dashboard(request):
     if 'username' not in request.session:
         messages.error(request, "Please log in to access this page.")
@@ -232,6 +231,7 @@ def friends_dashboard(request):
     # Fetch user_id from session and list his friends
     user_id = request.session.get('user_id')
     friends = Friend.objects.filter(user_id=user_id)
+    print(friends)
     return render(request, 'tracker/friends.html', {'friends': friends})
 
 def friend_details(request, friend_id):
@@ -1006,6 +1006,7 @@ def activity_dashboard(request):
     }
     return render(request, 'tracker/activity.html', context)
 
+
 #Settle Up Balances
 #for friend and group 
 @never_cache
@@ -1154,7 +1155,6 @@ def edit_expense(request, expense_id):
         return redirect('personal_dashboard')
 
     return render(request, 'tracker/edit_expense.html', {'expense': expense})
-
 
 def delete_expense(request, expense_id):
     if 'username' not in request.session:
