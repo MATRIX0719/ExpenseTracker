@@ -109,7 +109,6 @@
             <tr>
                 <th>Title</th>
                 <th>Category</th>
-                <th>Description</th>
                 <th>Amount</th>
                 <th>Paid By</th>
                 <th>Date</th>
@@ -121,8 +120,7 @@
             {% for expense in expenses_page_obj %}
             <tr>
                 <td class="text-center">{{ expense.title }}</td>
-                <td class="text-center">{{ expense.category }}</td>
-                <td class="text-center">{{ expense.description }}</td>
+                <td class="text-center">{{ group.category }}</td>
                 <td class="text-center">₹{{ expense.amount }}</td>
                 <td class="text-center">{{ expense.paid_by.name }}</td>
                 <td class="text-center">{{ expense.date }}</td>

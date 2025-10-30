@@ -109,7 +109,7 @@
                             <thead class="text-center">
                                 <tr>
                                     <th style="width: 5%;">#</th>
-                                    <th class="text-start">Title</th>
+                                    <th>Title</th>
                                     <th>Amount (₹)</th>
                                     <th>Category</th>
                                     <th>Date</th>
@@ -121,7 +121,7 @@
                                     {% for expense in expenses_page_obj %}
                                         <tr class="text-center">
                                             <td>{{ expenses_page_obj.start_index|add:forloop.counter0 }}</td>
-                                            <td class="text-start">{{ expense.title }}</td>
+                                            <td>{{ expense.title }}</td>
                                             <td>{{ expense.amount }}</td>
                                             <td>{{ expense.category }}</td>
                                             <td>{{ expense.date|date:"d M, Y" }}</td>

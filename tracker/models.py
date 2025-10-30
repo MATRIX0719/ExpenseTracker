@@ -16,15 +16,13 @@ class UserRegistration(models.Model):
     def __str__(self):
         return f"{self.name} - {self.email}"
     
-#Expense Model for CRUD
-    
+#Expense Model for CRUD 
 class Expense(models.Model):
     user = models.ForeignKey(UserRegistration, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     amount = models.FloatField()
     category = models.CharField(max_length=50)
     date = models.DateField()
-    description = models.TextField(blank=True, null=True)
 
     #String representation of the expense (for admin and debugging)
     def __str__(self):

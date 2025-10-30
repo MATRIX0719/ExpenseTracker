@@ -12,7 +12,7 @@ from datetime import datetime,date
 from django.db.models import Sum, Avg, Q
 from django.urls import reverse
 from django.db import transaction
-from decimal import Decimal
+from decimal import Decimal,InvalidOperation
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
@@ -273,7 +273,7 @@ def friend_details(request, friend_id):
     }
     return render(request, 'tracker/friend_details.html', context)
 
-#changes
+@never_cache
 def add_friend(request):
     if request.method == 'POST':
         friend_email = request.POST.get('friend_email')
@@ -303,54 +303,55 @@ def add_friend(request):
         return redirect('friends_dashboard')
     return render(request, 'tracker/add_friend.html')
 
-    if 'username' not in request.session:
-        messages.error(request, "Please log in to access this page.")
-        return redirect('login')
+    # if 'username' not in request.session:
+    #     messages.error(request, "Please log in to access this page.")
+    #     return redirect('login')
 
-    user_id = request.session.get('user_id')
-    user = get_object_or_404(UserRegistration, id=user_id)
-    friend = get_object_or_404(UserRegistration, id=friend_id)
+    # user_id = request.session.get('user_id')
+    # user = get_object_or_404(UserRegistration, id=user_id)
+    # friend = get_object_or_404(UserRegistration, id=friend_id)
 
-    # 1. Get the *full list* of expenses for balance calculation
-    all_expenses = FriendExpense.objects.filter(
-        Q(user=user, friend_user=friend) |
-        Q(user=friend, friend_user=user)
-    ).order_by('-date')
+    # # 1. Get the *full list* of expenses for balance calculation
+    # all_expenses = FriendExpense.objects.filter(
+    #     Q(user=user, friend_user=friend) |
+    #     Q(user=friend, friend_user=user)
+    # ).order_by('-date')
 
-    # --- THIS IS THE BALANCE FIX ---
-    # 2. Calculate balance from YOUR perspective
-    my_balance_val = all_expenses.filter(
-        user=user
-    ).aggregate(total=Sum('amount_owed'))['total'] or 0.0
+    # # --- THIS IS THE BALANCE FIX ---
+    # # 2. Calculate balance from YOUR perspective
+    # my_balance_val = all_expenses.filter(
+    #     user=user
+    # ).aggregate(total=Sum('amount_owed'))['total'] or 0.0
 
-    # 3. Calculate balance from your FRIEND'S perspective
-    their_balance_val = all_expenses.filter(
-        user=friend
-    ).aggregate(total=Sum('amount_owed'))['total'] or 0.0
+    # # 3. Calculate balance from your FRIEND'S perspective
+    # their_balance_val = all_expenses.filter(
+    #     user=friend
+    # ).aggregate(total=Sum('amount_owed'))['total'] or 0.0
     
-    # 4. The true balance is your perspective minus their perspective
-    total_balance = Decimal(my_balance_val) - Decimal(their_balance_val)
-    # --- END OF BALANCE FIX ---
+    # # 4. The true balance is your perspective minus their perspective
+    # total_balance = Decimal(my_balance_val) - Decimal(their_balance_val)
+    # # --- END OF BALANCE FIX ---
 
-    # (Optional) Get total amount spent
-    total_expenses_sum = all_expenses.aggregate(total=Sum('amount'))['total'] or 0
+    # # (Optional) Get total amount spent
+    # total_expenses_sum = all_expenses.aggregate(total=Sum('amount'))['total'] or 0
 
-    # --- NEW: PAGINATION LOGIC ---
-    paginator = Paginator(all_expenses, 10) # 10 expenses per page
-    page_number = request.GET.get('page')
-    expenses_page_obj = paginator.get_page(page_number)
-    # --- END OF NEW LOGIC ---
+    # # --- NEW: PAGINATION LOGIC ---
+    # paginator = Paginator(all_expenses, 10) # 10 expenses per page
+    # page_number = request.GET.get('page')
+    # expenses_page_obj = paginator.get_page(page_number)
+    # # --- END OF NEW LOGIC ---
 
-    context = {
-        'friend': friend,
-        'expenses_page_obj': expenses_page_obj, # Pass the paginated object
-        'total_expenses': total_expenses_sum,
-        'total_balance': total_balance,       # Pass the correct balance
-        'user': user,
-    }
-    return render(request, 'tracker/friend_details.html', context)
+    # context = {
+    #     'friend': friend,
+    #     'expenses_page_obj': expenses_page_obj, # Pass the paginated object
+    #     'total_expenses': total_expenses_sum,
+    #     'total_balance': total_balance,       # Pass the correct balance
+    #     'user': user,
+    # }
+    # return render(request, 'tracker/friend_details.html', context)
 
 #changes
+@never_cache
 def remove_friend(request,friend_id):
     if request.method == 'POST':
         user_id = request.session.get('user_id')
@@ -360,6 +361,7 @@ def remove_friend(request,friend_id):
         messages.success(request, "Friend removed")
     return redirect('friends_dashboard')
 
+@never_cache
 def add_expense_with_friend(request, friend_id):
     if 'username' not in request.session:
         return redirect('login')
@@ -462,6 +464,7 @@ def save_split_expense(request, friend_id):
     # Handle non-POST requests
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
 
+@never_cache
 @require_POST
 def delete_friend_expense(request, expense_id):
     user_id = request.session.get('user_id')
@@ -552,6 +555,7 @@ def groups_dashboard(request):
     }
     return render(request, 'tracker/groups.html', context)
 
+@never_cache
 def create_group(request):
     if 'username' not in request.session:
         messages.error(request, "Please log in to access this page.")
@@ -573,6 +577,7 @@ def create_group(request):
             messages.error(request,"Please fill all fields.")
     return render(request, 'tracker/create_group.html')
 
+@never_cache
 def remove_from_group(request, group_id):
     #Removes current user's membership from the group.
     if request.method == 'POST':
@@ -693,6 +698,7 @@ def group_details(request, group_id):
     }
     return render(request, 'tracker/group_details.html', context)
 
+@never_cache
 def add_members(request, group_id):
     #Handles adding new members to a group from the user's friend list
     group = get_object_or_404(Groups, id=group_id)
@@ -722,6 +728,7 @@ def add_members(request, group_id):
     }
     return render(request, 'tracker/add_members.html', context)
 
+@never_cache
 def add_group_expense(request, group_id):
     """A placeholder view to render the 'Add Group Expense' page."""
     if 'username' not in request.session:
@@ -734,9 +741,13 @@ def add_group_expense(request, group_id):
     
     if request.method == 'POST':
         title = request.POST.get('title')
+        print('Title:', title)
         amount = request.POST.get('amount')
+        print('Amount:', amount)
         category = request.POST.get('category')
+        print('Category:', category)
         description = request.POST.get('description')
+        print('Description:', description)  # Description field is blank in your model
 
         #Save Expense
         expense = GroupExpense.objects.create(
@@ -745,7 +756,7 @@ def add_group_expense(request, group_id):
             title=title,
             amount=amount,
             category=category,
-            description=description,
+            description=description
         )
 
         # Equal split among all members
@@ -764,6 +775,7 @@ def add_group_expense(request, group_id):
     context = {'group': group}
     return render(request, 'tracker/add_group_expense.html', context)
 
+@never_cache
 @require_POST
 def delete_group_expense(request, expense_id):
     user_id = request.session.get('user_id')
@@ -996,6 +1008,7 @@ def activity_dashboard(request):
 
 #Settle Up Balances
 #for friend and group 
+@never_cache
 def record_payment(request, friend_id):
     if request.method == 'POST':
         try:
@@ -1065,19 +1078,38 @@ def record_payment(request, friend_id):
     return redirect('personal_dashboard')
 
 #CRUD
+@never_cache
 def add_expense(request):
+    user_id = request.session.get('user_id')
+    if 'username' not in request.session or not user_id:
+        messages.error(request, "Please log in to access this page.")
+        return redirect('login')
+    
+    #Get logged in user from session to know which user is adding the expense
+    user = UserRegistration.objects.get(id=user_id)
     if request.method == 'POST':
 
-        #Get logged in user from session to know which user is adding the expense
-        user_id = request.session.get('user_id')
-        user = UserRegistration.objects.get(id=user_id)
 
         #Get form data
         title = request.POST.get('title')
         amount = request.POST.get('amount')
         category = request.POST.get('category')
         date = request.POST.get('date')
-        description = request.POST.get('description')
+
+        try:
+            amount = float(amount)
+            if amount <= 0:
+                raise ValueError("Amount must be greater than 0.")
+        except (ValueError,TypeError,InvalidOperation):
+            messages.error(request, "Please enter a valid amount greater than 0.")
+            context = {
+                'title': title,
+                'amount': amount,
+                'category': category,
+                'date': date,
+            }
+            return render(request, 'tracker/add_expense.html', context)
+        
 
         #Save to DB
         expense = Expense(
@@ -1086,16 +1118,24 @@ def add_expense(request):
             amount=amount,
             category=category,
             date=datetime.strptime(date, "%Y-%m-%d").date(),  # Convert string to date object
-            description=description,
         )
         expense.save()
 
         #Show success message
         messages.success(request, "Expense added successfully!")
         return redirect('personal_dashboard')
+    
+    # GET request - pass an empty dictionary for 'expense'
+    # to avoid errors on initial load
+    context = {
+        'expense': {
+            'title': '', 'amount': '', 'category': 'Food', 'date': '', 'description': ''
+        }
+    }
 
-    return render(request, 'tracker/add_expense.html')
+    return render(request, 'tracker/add_expense.html', context)
 
+@never_cache
 def edit_expense(request, expense_id):
     if 'username' not in request.session:
         messages.error(request, "Please log in to access this page.")
@@ -1110,9 +1150,11 @@ def edit_expense(request, expense_id):
         expense.category = request.POST.get('category')
         expense.date = request.POST.get('date')
         expense.save()
-        return redirect('landing_page')
+        messages.success(request, "Expense updated successfully!")
+        return redirect('personal_dashboard')
 
     return render(request, 'tracker/edit_expense.html', {'expense': expense})
+
 
 def delete_expense(request, expense_id):
     if 'username' not in request.session:
@@ -1124,6 +1166,6 @@ def delete_expense(request, expense_id):
     if request.method == 'POST':
         expense.delete()
         messages.success(request, "Expense deleted successfully!")
-        return redirect('landing_page')
-    
+        return redirect('personal_dashboard')
+
     return render(request, 'tracker/delete_expense.html', {'expense': expense})
