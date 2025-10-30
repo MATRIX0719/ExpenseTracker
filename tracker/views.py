@@ -353,13 +353,21 @@ def add_friend(request):
 #changes
 @never_cache
 def remove_friend(request,friend_id):
+    if 'username' not in request.session:
+        messages.error(request, "Please log in to access this page.")
+        return redirect('login')
+    
+    friend = get_object_or_404(UserRegistration, id=friend_id)
+    user_id = request.session.get('user_id')
+
     if request.method == 'POST':
-        user_id = request.session.get('user_id')
         #Remove both directions
         Friend.objects.filter(user_id=user_id, friend_user_id=friend_id).delete()
         Friend.objects.filter(user_id=friend_id, friend_user_id=user_id).delete()
         messages.success(request, "Friend removed")
-    return redirect('friends_dashboard')
+        return redirect('friends_dashboard')
+    
+    return render(request, 'tracker/remove_friend.html', {'friend': friend})
 
 @never_cache
 def add_expense_with_friend(request, friend_id):

@@ -1,0 +1,16 @@
+{% extends 'tracker/base.html' %}
+{% load static %}
+{% block title %}Remove Friend{% endblock %}
+
+{% block content %}
+<div class="card shadow p-4 mt-4 text-center">
+    <h3>Are you sure you want to remove this friend?</h3>
+    <p><strong>{{ friend.name }}</strong></p>
+    <p>As you remove this friend, all shared expenses will be deleted.</p>
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Remove</button>
+        <a href="{% url 'friends_dashboard' %}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+    </form>
+</div>
+{% endblock %}

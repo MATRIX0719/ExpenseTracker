@@ -34,12 +34,9 @@
                                         <a href="{% url 'friend_details' friend.friend_user.id %}" class="btn btn-sm btn-outline-secondary" title="Details">
                                             Expenses
                                         </a>
-                                        <form action="{% url 'remove_friend' friend.friend_user.id %}" method="post" class="d-inline">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove Friend">
-                                                Remove
-                                            </button>
-                                        </form>
+                                        <a href="{% url 'remove_friend' friend.friend_user.id %}" class="btn btn-sm btn-outline-danger" title="Remove Friend">
+                                            Remove
+                                        </a>
                                     </td>
                                 </tr>
                             {% endfor %}
