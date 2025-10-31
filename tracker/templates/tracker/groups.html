@@ -37,10 +37,14 @@
                                     <a href="{% url 'group_details' group_id=group.id %}" class="btn btn-sm btn-outline-secondary" title="group_details">
                                         Expenses
                                     </a>
-                                    <form action="{% url 'remove_from_group' group_id=group.id %}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to leave this group?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">Leave</button>
-                                    </form>
+                                    <a href="{% url 'remove_from_group' group_id=group.id %}" id="leave-btn" class="btn btn-sm"
+                                    style="background-color: #dc3545;
+                                    color: #fff;
+                                    border-color: #dc3545;
+                                    text-decoration: none;"
+                                    onmouseover="this.style.backgroundColor='#c82333'" onmouseout="this.style.backgroundColor='#dc3545'" title="Remove From Group">
+                                        Leave 
+                                    </a>
                                 </td>
                             </tr>
                             {% empty %}

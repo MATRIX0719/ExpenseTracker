@@ -577,12 +577,14 @@ def create_group(request):
 
 @never_cache
 def remove_from_group(request, group_id):
+    if 'username' not in request.session:
+        messages.error(request, "Please log in to access this page.")
+        return redirect('login')
+    user_id = request.session.get('user_id')
+    user = UserRegistration.objects.get(id=user_id)
+    group = get_object_or_404(Groups, id=group_id)
     #Removes current user's membership from the group.
     if request.method == 'POST':
-        user_id = request.session.get('user_id')
-        user = UserRegistration.objects.get(id=user_id)
-        group = get_object_or_404(Groups, id=group_id)
-
         # Remove the user's membership from the group
         group.members.remove(user)
         
@@ -590,10 +592,11 @@ def remove_from_group(request, group_id):
         if group.members.count() == 0:
             group.delete()
             messages.info(request, f"You left '{group.name}', and the group has been deleted as you were the last member.")
-        else:
-            messages.success(request, f"You have successfully left the group '{group.name}'.")
-            
-    return redirect('groups')
+        
+        messages.success(request, f"You have successfully left the group '{group.name}'.")   
+        return redirect('groups')
+    
+    return render(request, 'tracker/leave_group.html', {'group':group})
 
 def group_details(request, group_id):
     if 'username' not in request.session:
