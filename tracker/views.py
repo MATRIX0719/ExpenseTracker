@@ -472,47 +472,38 @@ def save_split_expense(request, friend_id):
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
 
 @never_cache
-@require_POST
 def delete_friend_expense(request, expense_id):
-    user_id = request.session.get('user_id')
-    if not user_id:
-        messages.error(request, "Please log in.")
+    if 'username' not in request.session:
+        messages.error(request,"Please login to access this page.")
         return redirect('login')
+    
+    user_id = request.session.get('user_id')
 
     try:
         # Get the expense object
         expense = get_object_or_404(FriendExpense, pk=expense_id)
-
-        # --- Security Check: Ensure the logged-in user owns this expense record ---
-        # We assume the 'user' field on FriendExpense is the creator/owner
-        if expense.user.id != user_id:
-            messages.error(request, "You do not have permission to delete this expense.")
-            # Redirect back to the friend detail page if possible, otherwise dashboard
-            if hasattr(expense, 'friend_user') and expense.friend_user:
-                 return redirect('friend_details', friend_id=expense.friend_user.id)
-            else:
-                 return redirect('personal_dashboard') # Fallback redirect
-
-        # Store the friend ID before deleting for the redirect
+        #Get the friend_id that we need for redirect and template rendering
         friend_id_for_redirect = expense.friend_user.id
-
-        # Delete the expense
-        expense.delete()
-        messages.success(request, "Expense deleted successfully.")
-
     except FriendExpense.DoesNotExist:
         messages.error(request, "Expense not found.")
-        # Need a sensible redirect if the expense doesn't exist, maybe dashboard?
-        return redirect('personal_dashboard') 
-    except Exception as e:
-        messages.error(request, f"An error occurred: {e}")
-        # Redirect back to friend details page even on error if possible
-        # Check if friend_id_for_redirect was set or try getting it again if needed
-        # For simplicity, redirecting to dashboard as fallback.
-        return redirect('friend_details') 
+        return redirect('friends_dashboard')
 
-    # Redirect back to the friend details page after successful deletion
-    return redirect('friend_details', friend_id=friend_id_for_redirect)
+    if request.method == 'POST':
+        try:
+            expense.delete()
+            messages.success(request, "Expense deleted successfully.")
+            return redirect('friend_details', friend_id=friend_id_for_redirect)
+
+        except Exception as e:
+            messages.error(request, f"An error occurred: {e}")
+            return redirect('friend_details', friend_id=friend_id_for_redirect)
+
+    context = {
+        'expense': expense,
+        'expense_id': expense_id,
+        'friend_id': friend_id_for_redirect,
+    }
+    return render(request,'tracker/delete_friend_expense.html', context)
 
 #Groups Dashboard
 def groups_dashboard(request):
