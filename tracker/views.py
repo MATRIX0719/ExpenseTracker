@@ -740,39 +740,6 @@ def add_group_expense(request, group_id):
     user = UserRegistration.objects.get(id=user_id)
     group = get_object_or_404(Groups, id=group_id)
     
-    if request.method == 'POST':
-        title = request.POST.get('title')
-        print('Title:', title)
-        amount = request.POST.get('amount')
-        print('Amount:', amount)
-        category = request.POST.get('category')
-        print('Category:', category)
-        description = request.POST.get('description')
-        print('Description:', description)  # Description field is blank in your model
-
-        #Save Expense
-        expense = GroupExpense.objects.create(
-            group=group,
-            paid_by=user,
-            title=title,
-            amount=amount,
-            category=category,
-            description=description
-        )
-
-        # Equal split among all members
-        members = group.members.all()
-        share = amount / len(members)
-        for member in members:
-            GroupExpenseSplit.objects.create(
-                expense=expense,
-                user=member,
-                amount_owed=0 if member == user else share,
-            )
-
-        messages.success(request, "Group expense added successfully!")
-        return redirect('group_details', group_id=group.id)
-    
     context = {'group': group}
     return render(request, 'tracker/add_group_expense.html', context)
 
@@ -840,13 +807,7 @@ def save_group_split_expense(request, group_id):
 
             # 2. Get basic expense data
             total_amount = float(request.POST.get('amount'))
-            
-            # --- Field Mapping ---
-            # Your form has 'description', but your model has 'title' and 'category'.
-            # We will map the form's 'description' to the model's 'title'.
-            # We'll set a default category since the form doesn't provide one.
-            title = request.POST.get('description')
-            category = request.POST.get('category', 'General') # Defaulting category
+            title = request.POST.get('title')
 
             # 3. Use a transaction for safety
             # This ensures we either create the expense AND all its splits, or nothing.
@@ -857,8 +818,6 @@ def save_group_split_expense(request, group_id):
                     paid_by=paid_by_user,
                     title=title,
                     amount=total_amount,
-                    category=category
-                    # Description field is blank in your model, so we skip it
                 )
 
                 # 5. Loop through group members to get their shares

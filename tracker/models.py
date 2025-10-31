@@ -98,7 +98,6 @@ class GroupExpense(models.Model):
     amount = models.FloatField()
     category = models.CharField(max_length=80)
     date = models.DateField(auto_now_add=True)
-    description = models.TextField(blank=True,null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     #Optional helper field to total balances cached
