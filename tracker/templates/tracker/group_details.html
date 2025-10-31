@@ -12,7 +12,6 @@
             Show Balances & Payments
         </button>
         <a href="{% url 'add_members' group_id=group.id %}" class="btn btn-outline-secondary">Add a member</a>
-        <a href="{% url 'groups' %}" class="btn btn-outline-secondary">Back to All Groups</a>
     </div>
 
     <div class="collapse" id="balanceDetails">
@@ -46,30 +45,30 @@
 
 
             <div class="d-grid gap-2 d-md-block">
-                {% if members|length == 1 and current_user in members %}
+                <!-- {% if members|length == 1 and current_user in members %}
                     <a href="{% url 'add_members' group_id=group.id %}" class="btn btn-success">Add Members from Friends</a>
                     <a href="#" class="btn btn-secondary">Share Invite Link</a>
-                {% endif %}
+                {% endif %} -->
 
                 <hr>
 
                 <h4>Payments & 1-on-1 Expenses</h4>
-                <table class="table table-bordered">
-                    <thead>
+                <table class="table table-hover">
+                    <thead class="table-light text-center">
                         <tr>
-                            <th>Date</th>
                             <th>Title</th>
-                            <th>Paid By</th>
                             <th>Amount</th>
+                            <th>Paid By</th>
+                            <th>Date</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for expense in friend_expenses_page_obj %}
                         <tr>
-                            <td>{{ expense.date }}</td>
                             <td>{{ expense.title }}</td>
+                            <td>{{ expense.amount|floatformat:2 }}</td>
                             <td>{{ expense.paid_by.name }}</td>
-                            <td>₹{{ expense.amount|floatformat:2 }}</td>
+                            <td>{{ expense.date }}</td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -108,7 +107,6 @@
         <thead class="table-light text-center">
             <tr>
                 <th>Title</th>
-                <th>Category</th>
                 <th>Amount</th>
                 <th>Paid By</th>
                 <th>Date</th>
@@ -120,7 +118,6 @@
             {% for expense in expenses_page_obj %}
             <tr>
                 <td class="text-center">{{ expense.title }}</td>
-                <td class="text-center">{{ group.category }}</td>
                 <td class="text-center">₹{{ expense.amount }}</td>
                 <td class="text-center">{{ expense.paid_by.name }}</td>
                 <td class="text-center">{{ expense.date }}</td>
@@ -134,14 +131,9 @@
                     {% endfor %}
                 </td>
                 <td class="text-center align-middle"> 
-                    <form action="{% url 'delete_group_expense' expense.id %}" method="POST" 
-                    onsubmit="return confirm('Are you sure you want to delete this group expense? This will remove it for all members and cannot be undone.');" 
-                    class="d-inline"> 
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Expense">
-                        <i class="fas fa-trash-alt"></i> {# Optional: Add trash icon #}
-                    </button>
-                    </form>
+                    <a href="{% url 'delete_group_expense' expense.id %}" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-trash-alt"></i> 
+                    </a>
                 </td>
             </tr>
             {% empty %}

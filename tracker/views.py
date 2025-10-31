@@ -480,7 +480,7 @@ def delete_friend_expense(request, expense_id):
     user_id = request.session.get('user_id')
 
     try:
-        # Get the expense object
+        #Get the expense object
         expense = get_object_or_404(FriendExpense, pk=expense_id)
         #Get the friend_id that we need for redirect and template rendering
         friend_id_for_redirect = expense.friend_user.id
@@ -777,43 +777,37 @@ def add_group_expense(request, group_id):
     return render(request, 'tracker/add_group_expense.html', context)
 
 @never_cache
-@require_POST
 def delete_group_expense(request, expense_id):
-    user_id = request.session.get('user_id')
-    if not user_id:
-        messages.error(request, "Please log in.")
+    if 'username' not in request.session:
+        messages.error(request, "Please login to access this page.")
         return redirect('login')
-
+    
+    #Get user_id and expense outside the try to send them into context to the HTML with the GET request.
+    user_id = request.session.get('user_id')
+    expense = get_object_or_404(GroupExpense.objects.select_related('group'), pk=expense_id)
     try:
-        # Get the expense object and its related group
-        expense = get_object_or_404(GroupExpense.objects.select_related('group'), pk=expense_id)
-        
-        # Store the group ID for redirection before potential errors/deletion
+        #Get the group ID that we need for redirect and template rendering
         group_id_for_redirect = expense.group.id
-
-        # --- Security Check: Ensure the logged-in user is a member of the group ---
-        if not expense.group.members.filter(id=user_id).exists():
-            messages.error(request, "You do not have permission to delete expenses in this group.")
-            return redirect('group_details', group_id=group_id_for_redirect) # Redirect back to group page
-
-        # Delete the expense (Splits will be deleted automatically due to CASCADE)
-        expense.delete()
-        messages.success(request, "Group expense deleted successfully.")
-
     except GroupExpense.DoesNotExist:
         messages.error(request, "Expense not found.")
-        # Redirect to groups dashboard if expense doesn't exist
-        return redirect('groups_dashboard') 
-    except Exception as e:
-        messages.error(request, f"An error occurred: {e}")
-        # Redirect back to group details page even on error if possible
-        if 'group_id_for_redirect' in locals():
-             return redirect('group_details', group_id=group_id_for_redirect)
-        else:
-             return redirect('groups_dashboard') # Fallback redirect
-
-    # Redirect back to the group details page after successful deletion
-    return redirect('group_details', group_id=group_id_for_redirect)
+        return redirect('groups_dashboard')
+    
+    if request.method == 'POST':
+        try:
+            expense.delete()
+            messages.success(request, "Group expense deleted successfully.")
+            return redirect('group_details', group_id=group_id_for_redirect)
+        
+        except Exception as e:
+            messages.error(request, f"An error occurred: {e}")
+            return redirect('group_details', group_id=group_id_for_redirect)
+    
+    context = {
+        'expense': expense,
+        'expense_id': expense_id,
+        'group_id': group_id_for_redirect,
+    }
+    return render(request,'tracker/delete_group_expense.html', context)
 
 #New and most complex view to save group expenses
 def save_group_split_expense(request, group_id):
